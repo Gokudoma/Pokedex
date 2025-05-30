@@ -125,16 +125,16 @@ body {
     border-top: 35px solid transparent;
     border-bottom: 35px solid transparent;
     cursor: pointer;
-    position: relative;
-    transform: rotate(0deg);
-    left: -250px;
-    top: -30px;
+    position: absolute;
+    top: 50%;
+    left: 25%;
+    transform: translate(-50%, -50%) rotate(0deg);
     filter: drop-shadow(2px 2px 5px rgba(0,0,0,0.5));
     transition: transform 0.1s ease-in-out;
 }
 
 .yellow-triangle:active {
-    transform: translateX(2px);
+    transform: translate(-45%, -45%) translateX(2px);
 }
 
 .bottom-bar {
