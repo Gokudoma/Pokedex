@@ -303,6 +303,7 @@ body {
 
 .pokedex-extra-details-view .pokedex-screen {
     overflow-y: auto;
+    min-height: 125%;
 }
 
 .pokedex-screen h2 {
