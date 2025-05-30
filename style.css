@@ -1,8 +1,8 @@
 body {
     font-family: 'Press Start 2P', cursive;
-    background-image: url(./images/background.jpg); /* Dein neues Hintergrundbild */
+    background-image: url(./images/background.jpg);
     background-repeat: no-repeat;
-    background-size: 100% auto; /* Passt die Breite an und behält das Seitenverhältnis bei */
+    background-size: 100% auto;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -27,7 +27,7 @@ body {
 .pokedex-closed {
     width: 100%;
     height: 100%;
-    position: absolute; /* Wichtig für die Animation und Z-Index */
+    position: absolute;
     top: 0;
     left: 0;
     display: flex;
@@ -37,9 +37,9 @@ body {
     padding: 20px;
     box-sizing: border-box;
     overflow: hidden;
-    z-index: 2; /* Sorgt dafür, dass der geschlossene Pokedex über dem offenen liegt */
-    transform-origin: top center; /* Definiert den Drehpunkt oben in der Mitte */
-    transition: transform 0.6s ease-out, opacity 0.6s ease-out; /* Übergänge für Transformation und Deckkraft */
+    z-index: 2;
+    transform-origin: top center;
+    transition: transform 0.6s ease-out, opacity 0.6s ease-out;
 }
 
 /* STYLES FÜR DEN ZUGEKLAPPTEN POKEDEX */
@@ -188,28 +188,28 @@ body {
     /* Animations-Startzustand */
     opacity: 0; 
     transform: rotateX(90deg) translateY(50px);
-    transition: transform 0.6s ease-out 0.2s, opacity 0.6s ease-out 0.2s; /* Verzögerter Übergang */
-    z-index: 1; /* Liegt unter dem geschlossenen Pokedex */
-    position: absolute; /* Wichtig für die Animation und Z-Index */
+    transition: transform 0.6s ease-out 0.2s, opacity 0.6s ease-out 0.2s;
+    z-index: 1;
+    position: absolute;
     top: 0;
     left: 0;
 }
 
 /* Animation für das Öffnen des Pokedex */
 .pokedex-closed.opening {
-    transform: rotateX(-90deg) translateY(-50px); /* Kippt ihn nach hinten und verschiebt ihn leicht nach oben */
-    opacity: 0; /* Macht ihn unsichtbar */
+    transform: rotateX(-90deg) translateY(-50px);
+    opacity: 0;
 }
 
 .pokedex-open.opened {
-    transform: rotateX(0deg) translateY(0); /* Kippt ihn in die normale Position */
-    opacity: 1; /* Macht ihn sichtbar */
+    transform: rotateX(0deg) translateY(0);
+    opacity: 1;
 }
 
-/* Für das Schließen des Pokedex (der Deckel kommt zurück) */
+/* Für das Schließen des Pokedex */
 .pokedex-closed.closing {
-    transform: rotateX(0deg) translateY(0); /* Kippt ihn in die normale Position */
-    opacity: 1; /* Macht ihn sichtbar */
+    transform: rotateX(0deg) translateY(0);
+    opacity: 1;
 }
 
 
@@ -278,7 +278,6 @@ body {
 #pokemonSearch::placeholder {
     color: #888;
 }
-
 
 /* Container für die gesamte Detailansicht */
 .pokedex-detail-view {
@@ -438,11 +437,10 @@ body {
 
 /* Utility Class */
 .hidden {
-    display: none !important; /* Wichtig für die Animation, damit es nicht sofort ausgeblendet wird */
-    opacity: 0; /* Sicherstellen, dass hidden Elemente unsichtbar sind */
-    transform: none; /* Sicherstellen, dass hidden Elemente keine Transformationen haben */
+    display: none !important;
+    opacity: 0;
+    transform: none;
 }
-
 
 /* Animation für Pokemon-Bild */
 @keyframes flash {
@@ -507,27 +505,83 @@ body {
     height: 120px;
     background-color: #444;
     border-radius: 10px;
-    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+    box-shadow: inset 0 0 15px rgba(0,0,0,0.6); /* Stärkerer Innenschatten für Tiefe */
     margin-top: 10px;
+    /* Optional: Leichter 3D-Effekt */
+    transform: perspective(100px) rotateX(5deg);
+    transition: transform 0.2s ease-out;
+}
+
+.dpad:active {
+    transform: perspective(100px) rotateX(0deg); /* D-Pad flacher beim Klicken */
 }
 
 .dpad-btn {
     position: absolute;
     width: 40px;
     height: 40px;
-    background-color: #333;
-    border: 2px solid #222;
+    background-color: #333; /* Einheitliche Farbe */
+    border: none;
     cursor: pointer;
-    transition: background-color 0.1s;
+    transition: background-color 0.1s ease, transform 0.1s ease; /* Übergang für Hover/Active */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.8em; /* Größe der Pfeile */
+    color: #bbb; /* Farbe der Pfeile */
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* Leichter Schatten für Pfeile */
 }
 
-.dpad-btn:hover { background-color: #555; }
-.dpad-btn:active { background-color: #111; }
+/* Hover- und Active-Effekte für die Buttons */
+.dpad-btn:active {
+    background-color: #222; /* Dunkler und leicht eingedrückt beim Klicken */
+    /* Dies bleibt gleich, da es der Standard für alle Buttons ist */
+}
 
-.dpad-btn.up { top: 0; left: 40px; border-radius: 5px 5px 0 0; }
-.dpad-btn.down { bottom: 0; left: 40px; border-radius: 0 0 5px 5px; }
-.dpad-btn.left { left: 0; top: 40px; border-radius: 5px 0 0 5px; }
-.dpad-btn.right { right: 0; top: 40px; border-radius: 0 5px 5px 0; }
+.dpad-btn.up:active {
+    transform: translateX(1px) scale(0.98);
+}
+
+.dpad-btn.down:active {
+    transform: translateY(1px) scale(0.98); /* Bewegt sich leicht nach unten/oben */
+}
+
+.dpad-btn.left:active {
+    transform: translateX(1px) scale(0.98); /* Bewegt sich leicht nach rechts */
+}
+
+.dpad-btn.right:active {
+    transform: translateX(-1px) scale(0.98); /* Bewegt sich leicht nach links */
+}
+
+/* Positionierung und individuelle Formen */
+.dpad-btn.up {
+    top: 0;
+    left: 40px;
+    border-radius: 5px 5px 0 0;
+}
+.dpad-btn.up::after { content: '▲'; } /* Unicode-Pfeil */
+
+.dpad-btn.down {
+    bottom: 0;
+    left: 40px;
+    border-radius: 0 0 5px 5px;
+}
+.dpad-btn.down::after { content: '▼'; } /* Unicode-Pfeil */
+
+.dpad-btn.left {
+    left: 0;
+    top: 40px;
+    border-radius: 5px 0 0 5px;
+}
+.dpad-btn.left::after { content: '◀'; } /* Unicode-Pfeil */
+
+.dpad-btn.right {
+    right: 0;
+    top: 40px;
+    border-radius: 0 5px 5px 0;
+}
+.dpad-btn.right::after { content: '▶'; } /* Unicode-Pfeil */
 
 .action-buttons {
     display: flex;
