@@ -20,6 +20,7 @@ body {
     position: relative;
 }
 
+
 .pokedex-closed {
     width: 100%;
     height: 100%;
@@ -217,6 +218,7 @@ body {
     padding: 10px;
 }
 
+/* Container für das Suchfeld */
 .search-area {
     margin-bottom: 10px;
     padding: 5px;
@@ -227,7 +229,7 @@ body {
 
 /* Styling für das Suchfeld */
 #pokemonSearch {
-    width: calc(100% - 10px); /* breite 100% minus 2*Padding (5px links + 5px rechts) */
+    width: calc(100% - 10px); /* 100% minus 2*Padding (5px links + 5px rechts) */
     padding: 8px;
     border: 2px solid #555;
     border-radius: 3px;
@@ -477,15 +479,6 @@ body {
 .dpad-btn.down { bottom: 0; left: 40px; border-radius: 0 0 5px 5px; }
 .dpad-btn.left { left: 0; top: 40px; border-radius: 5px 0 0 5px; }
 .dpad-btn.right { right: 0; top: 40px; border-radius: 0 5px 5px 0; }
-.dpad-center {
-    position: absolute;
-    width: 40px;
-    height: 40px;
-    background-color: #333;
-    top: 40px;
-    left: 40px;
-    border: 2px solid #222;
-}
 
 .action-buttons {
     display: flex;
