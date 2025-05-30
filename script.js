@@ -56,16 +56,24 @@ class Pokedex {
     }
 
     setInitialState() {
-        this.elements.pokedexClosed.classList.remove('hidden');
+        this.elements.pokedexClosed.classList.remove('hidden', 'opening', 'closing');
         this.elements.pokedexOpen.classList.add('hidden');
+        this.elements.pokedexOpen.classList.remove('opened');
         this.elements.pokedexDetailView.classList.add('hidden');
-        this.resetBackgrounds();
-        this.resetDetailFields();
+        this.resetPokedexVisuals(); // Neue Hilfsfunktion
         this.elements.pokemonSearch.value = '';
         this.state.searchTerm = '';
         this.elements.volumeRange.value = this.state.volume * 100;
         this.elements.volumePercentage.textContent = `${Math.round(this.state.volume * 100)}%`;
         this.elements.pokemonCry.volume = this.state.volume;
+    }
+
+    resetPokedexVisuals() { // Neue Hilfsfunktion
+        this.resetBackgrounds();
+        this.resetDetailFields();
+        this.elements.pokemonImage.src = '';
+        this.elements.pokemonImage.alt = '';
+        this.stopPokemonCry();
     }
 
     initEventListeners() {
@@ -84,9 +92,11 @@ class Pokedex {
     }
 
     openPokedex() {
+        if (this.state.pokedexIsOpen) return;
         this.state.pokedexIsOpen = true;
-        this.elements.pokedexClosed.classList.add('hidden');
-        this.elements.pokedexOpen.classList.remove('hidden');
+
+        this.prepareOpenAnimation(); // Neue Hilfsfunktion
+        this.elements.pokedexClosed.addEventListener('transitionend', this.handleOpenTransitionEnd);
 
         if (this.state.allPokemon.length === 0) {
             this.fetchPokemonList();
@@ -95,12 +105,53 @@ class Pokedex {
         }
     }
 
-    closePokedex() {
-        this.state.pokedexIsOpen = false;
-        this.elements.pokedexOpen.classList.add('hidden');
-        this.elements.pokedexClosed.classList.remove('hidden');
-        this.hidePokemonDetail();
+    prepareOpenAnimation() { // Neue Hilfsfunktion
+        this.elements.pokedexOpen.classList.remove('hidden');
+        this.elements.pokedexOpen.classList.remove('opened');
+        this.elements.pokedexClosed.classList.add('opening');
+        setTimeout(() => this.elements.pokedexOpen.classList.add('opened'), 10);
     }
+
+    handleOpenTransitionEnd = (event) => {
+        if (event.target === this.elements.pokedexClosed && event.propertyName === 'transform') {
+            this.elements.pokedexClosed.classList.add('hidden');
+            this.elements.pokedexClosed.classList.remove('opening');
+            this.elements.pokedexClosed.removeEventListener('transitionend', this.handleOpenTransitionEnd);
+        }
+    };
+
+    closePokedex() {
+        if (!this.state.pokedexIsOpen) return;
+        this.state.pokedexIsOpen = false;
+        this.hidePokemonDetail();
+
+        this.prepareCloseAnimation(); // Neue Hilfsfunktion
+        this.elements.pokedexClosed.addEventListener('transitionend', this.handleCloseTransitionEnd);
+        this.elements.pokedexOpen.addEventListener('transitionend', this.handleCloseTransitionEndOpen);
+
+        this.resetPokedexVisuals(); // Nutzt die neue Hilfsfunktion
+    }
+
+    prepareCloseAnimation() { // Neue Hilfsfunktion
+        this.elements.pokedexOpen.classList.remove('opened');
+        this.elements.pokedexClosed.classList.remove('hidden');
+        this.elements.pokedexClosed.classList.remove('opening');
+        setTimeout(() => this.elements.pokedexClosed.classList.add('closing'), 10);
+    }
+
+    handleCloseTransitionEnd = (event) => {
+        if (event.target === this.elements.pokedexClosed && event.propertyName === 'transform') {
+            this.elements.pokedexClosed.classList.remove('closing');
+            this.elements.pokedexClosed.removeEventListener('transitionend', this.handleCloseTransitionEnd);
+        }
+    };
+
+    handleCloseTransitionEndOpen = (event) => {
+        if (event.target === this.elements.pokedexOpen && event.propertyName === 'transform') {
+            this.elements.pokedexOpen.classList.add('hidden');
+            this.elements.pokedexOpen.removeEventListener('transitionend', this.handleCloseTransitionEndOpen);
+        }
+    };
 
     async fetchPokemonList() {
         try {
@@ -109,46 +160,54 @@ class Pokedex {
             this.state.allPokemon = response.results;
             this.displayPokemonList();
         } catch (error) {
-            this.showError('Fehler beim Abrufen der Pokémon-Liste.', error);
+            this.handleFetchError('Fehler beim Abrufen der Pokémon-Liste.', error); // Neue Hilfsfunktion
         }
     }
 
     async fetchData(url) {
-        try {
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`HTTP-Fehler! Status: ${response.status}`);
-            }
-            return await response.json();
-        } catch (error) {
-            console.error(`Fehler beim Abrufen von ${url}:`, error);
-            throw error;
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP-Fehler! Status: ${response.status}`);
         }
+        return await response.json();
     }
 
     displayPokemonList() {
         this.elements.pokemonList.innerHTML = '';
-        const filteredPokemon = this.state.allPokemon.filter(pokemon =>
-            pokemon.name.toLowerCase().includes(this.state.searchTerm.toLowerCase())
-        );
+        const filtered = this.getFilteredPokemon(); // Neue Hilfsfunktion
 
-        if (filteredPokemon.length === 0) {
-            this.elements.pokemonList.innerHTML = '<li>Keine Ergebnisse gefunden.</li>';
-            this.resetPokemonDisplayBackground();
-            this.elements.pokemonImage.src = '';
-            this.elements.pokemonImage.alt = 'Kein Pokémon gefunden';
-            this.resetDetailFields();
-            this.stopPokemonCry();
+        if (filtered.length === 0) {
+            this.handleNoSearchResults(); // Neue Hilfsfunktion
             return;
         }
+        this.renderPokemonListItems(filtered); // Neue Hilfsfunktion
+        this.selectInitialListItem(filtered); // Neue Hilfsfunktion
+    }
 
-        filteredPokemon.forEach((pokemon) => {
+    getFilteredPokemon() { // Neue Hilfsfunktion
+        return this.state.allPokemon.filter(pokemon =>
+            pokemon.name.toLowerCase().includes(this.state.searchTerm.toLowerCase())
+        );
+    }
+
+    handleNoSearchResults() { // Neue Hilfsfunktion
+        this.elements.pokemonList.innerHTML = '<li>Keine Ergebnisse gefunden.</li>';
+        this.resetPokemonDisplayBackground();
+        this.elements.pokemonImage.src = '';
+        this.elements.pokemonImage.alt = 'Kein Pokémon gefunden';
+        this.resetDetailFields();
+        this.stopPokemonCry();
+    }
+
+    renderPokemonListItems(pokemonList) { // Neue Hilfsfunktion
+        pokemonList.forEach((pokemon) => {
             this.elements.pokemonList.appendChild(this.createPokemonListItem(pokemon));
         });
+    }
 
+    selectInitialListItem(filteredPokemon) { // Neue Hilfsfunktion
         const currentSelectedName = this.state.allPokemon[this.state.selectedPokemonIndex]?.name;
         const currentSelectedInFilteredIndex = filteredPokemon.findIndex(p => p.name === currentSelectedName);
-        
         this.selectPokemonListItem(currentSelectedInFilteredIndex !== -1 ? currentSelectedInFilteredIndex : 0);
     }
 
@@ -164,7 +223,6 @@ class Pokedex {
     selectPokemonListItem(index) {
         const listItems = this.elements.pokemonList.children;
         if (listItems.length === 0) return;
-
         this.highlightSelectedListItem(listItems, index);
         this.updatePokemonPreview();
     }
@@ -172,23 +230,19 @@ class Pokedex {
     highlightSelectedListItem(listItems, newIndex) {
         const currentActive = document.querySelector('#pokemonList li.active');
         if (currentActive) currentActive.classList.remove('active');
-
         const newSelectedFilteredItem = listItems[newIndex];
         const newSelectedOriginalId = parseInt(newSelectedFilteredItem.dataset.id) - 1;
-
         this.state.selectedPokemonIndex = newSelectedOriginalId;
-
         newSelectedFilteredItem.classList.add('active');
         newSelectedFilteredItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     async updatePokemonPreview() {
         if (this.state.detailViewActive) return;
-
         const pokemon = this.state.allPokemon[this.state.selectedPokemonIndex];
         if (!pokemon) return;
 
-        let currentPokemonData = await this.getOrFetchPokemonData(pokemon.name, pokemon.url);
+        const currentPokemonData = await this.getOrFetchPokemonData(pokemon.name, pokemon.url);
         if (!currentPokemonData) return;
 
         this.updatePokemonImage(currentPokemonData);
@@ -200,16 +254,19 @@ class Pokedex {
         if (this.state.detailedPokemonData[name]) {
             return this.state.detailedPokemonData[name];
         }
-        const data = await this.fetchData(url);
-        if (data) {
+        try {
+            const data = await this.fetchData(url);
             this.state.detailedPokemonData[name] = data;
+            return data;
+        } catch (error) {
+            console.error(`Fehler beim Cachen/Abrufen von ${name}:`, error);
+            return null;
         }
-        return data;
     }
 
     updatePokemonImage(pokemonData) {
         const imageUrl = pokemonData.sprites.other?.['official-artwork']?.front_default ||
-                                   pokemonData.sprites.front_default;
+                         pokemonData.sprites.front_default;
         this.elements.pokemonImage.src = imageUrl || '';
         this.elements.pokemonImage.alt = imageUrl ? capitalizeFirstLetter(pokemonData.name) : 'Kein Bild verfügbar';
     }
@@ -232,12 +289,12 @@ class Pokedex {
         this.toggleDetailViewVisibility(true);
 
         const pokemonId = this.getSelectedPokemonId();
-        const pokemonData = await this.loadPokemonDataForDetail(pokemonId);
-        if (!pokemonData) return;
-
-        const speciesData = await this.loadSpeciesDataForDetail(pokemonId);
-        if (!speciesData) return;
-
+        const [pokemonData, speciesData] = await Promise.all([ // Paralleles Laden
+            this.loadPokemonDataForDetail(pokemonId),
+            this.loadSpeciesDataForDetail(pokemonId)
+        ]);
+        
+        if (!pokemonData || !speciesData) return;
         this.updateDetailView(pokemonData, speciesData);
     }
 
@@ -260,19 +317,17 @@ class Pokedex {
     async loadPokemonDataForDetail(pokemonId) {
         if (!pokemonId) return null;
         const pokemonName = this.state.allPokemon[this.state.selectedPokemonIndex].name;
-        let pokemonData = this.state.detailedPokemonData[pokemonName];
-
-        if (!pokemonData) {
-            try {
-                pokemonData = await this.fetchData(`${POKEAPI_BASE_URL}pokemon/${pokemonId}/`);
-                this.state.detailedPokemonData[pokemonName] = pokemonData;
-            } catch (error) {
-                this.showError('Fehler beim Laden der Pokémon-Details.', error);
-                this.hidePokemonDetail();
-                return null;
-            }
+        if (this.state.detailedPokemonData[pokemonName]) {
+            return this.state.detailedPokemonData[pokemonName];
         }
-        return pokemonData;
+        try {
+            const data = await this.fetchData(`${POKEAPI_BASE_URL}pokemon/${pokemonId}/`);
+            this.state.detailedPokemonData[pokemonName] = data;
+            return data;
+        } catch (error) {
+            this.handleFetchError('Fehler beim Laden der Pokémon-Details.', error, true); // True für hideDetail
+            return null;
+        }
     }
 
     async loadSpeciesDataForDetail(pokemonId) {
@@ -280,8 +335,7 @@ class Pokedex {
         try {
             return await this.fetchData(`${POKEAPI_BASE_URL}pokemon-species/${pokemonId}/`);
         } catch (error) {
-            this.showError('Fehler beim Laden der Pokémon-Beschreibung.', error);
-            this.hidePokemonDetail();
+            this.handleFetchError('Fehler beim Laden der Pokémon-Beschreibung.', error, true);
             return null;
         }
     }
@@ -309,7 +363,6 @@ class Pokedex {
         this.elements.pokemonTypes.innerHTML = '';
         const types = pokemonData.types.map(t => t.type.name);
         const primaryType = this.getPrimaryTypeName(pokemonData);
-
         this.applyBackgroundColors(primaryType);
         types.forEach(type => this.elements.pokemonTypes.appendChild(createTypeBadge(type)));
     }
@@ -357,7 +410,7 @@ class Pokedex {
         this.state.detailViewActive = false;
         this.toggleDetailViewVisibility(false);
         this.resetDetailFields();
-        this.resetBackgrounds();
+        this.resetBackgrounds(); // Hier explizit, da es nicht in resetPokedexVisuals ist
         this.stopPokemonCry();
         this.displayPokemonList();
     }
@@ -383,14 +436,13 @@ class Pokedex {
 
     handlePokemonListClick(event) {
         const listItem = event.target.closest('li');
-        if (listItem && this.state.pokedexIsOpen && !this.state.detailViewActive) {
-            const pokemonIdClicked = parseInt(listItem.dataset.id);
-            const originalIndex = pokemonIdClicked - 1; 
+        if (!listItem || !this.state.pokedexIsOpen || this.state.detailViewActive) return;
+        const pokemonIdClicked = parseInt(listItem.dataset.id);
+        const originalIndex = pokemonIdClicked - 1; 
 
-            if (originalIndex !== -1) {
-                this.state.selectedPokemonIndex = originalIndex;
-                this.displayPokemonList();
-            }
+        if (originalIndex !== -1) {
+            this.state.selectedPokemonIndex = originalIndex;
+            this.displayPokemonList();
         }
     }
 
@@ -414,35 +466,35 @@ class Pokedex {
     }
 
     handleDpadMovement(offset) {
-        if (this.state.pokedexIsOpen && !this.state.detailViewActive) {
-            const filteredPokemon = this.state.allPokemon.filter(pokemon =>
-                pokemon.name.toLowerCase().includes(this.state.searchTerm.toLowerCase())
-            );
+        if (!this.state.pokedexIsOpen || this.state.detailViewActive) return;
+        
+        const filteredPokemon = this.getFilteredPokemon();
+        if (filteredPokemon.length === 0) return;
 
-            if (filteredPokemon.length === 0) return;
+        let currentFilteredIndex = this.getCurrentFilteredIndex(filteredPokemon);
+        const newFilteredIndex = this.calculateNewFilteredIndex(currentFilteredIndex, offset, filteredPokemon.length);
 
-            const currentSelectedName = this.state.allPokemon[this.state.selectedPokemonIndex]?.name;
-            let currentFilteredIndex = filteredPokemon.findIndex(p => p.name === currentSelectedName);
+        this.updateSelectedPokemonAndDisplay(filteredPokemon[newFilteredIndex]);
+    }
 
-            if (currentFilteredIndex === -1) {
-                currentFilteredIndex = 0;
-            }
+    getCurrentFilteredIndex(filteredPokemon) { // Neue Hilfsfunktion
+        const currentSelectedName = this.state.allPokemon[this.state.selectedPokemonIndex]?.name;
+        let currentFilteredIndex = filteredPokemon.findIndex(p => p.name === currentSelectedName);
+        return currentFilteredIndex === -1 ? 0 : currentFilteredIndex;
+    }
 
-            let newFilteredIndex = currentFilteredIndex + offset;
+    calculateNewFilteredIndex(currentIndex, offset, totalLength) { // Neue Hilfsfunktion
+        let newIndex = currentIndex + offset;
+        if (newIndex < 0) newIndex = 0;
+        else if (newIndex >= totalLength) newIndex = totalLength - 1;
+        return newIndex;
+    }
 
-            if (newFilteredIndex < 0) {
-                newFilteredIndex = 0;
-            } else if (newFilteredIndex >= filteredPokemon.length) {
-                newFilteredIndex = filteredPokemon.length - 1;
-            }
-
-            const newPokemonName = filteredPokemon[newFilteredIndex].name;
-            const newOriginalIndex = this.state.allPokemon.findIndex(p => p.name === newPokemonName);
-
-            if (newOriginalIndex !== -1) {
-                this.state.selectedPokemonIndex = newOriginalIndex;
-                this.displayPokemonList();
-            }
+    updateSelectedPokemonAndDisplay(newPokemon) { // Neue Hilfsfunktion
+        const newOriginalIndex = this.state.allPokemon.findIndex(p => p.name === newPokemon.name);
+        if (newOriginalIndex !== -1) {
+            this.state.selectedPokemonIndex = newOriginalIndex;
+            this.displayPokemonList();
         }
     }
 
@@ -453,22 +505,16 @@ class Pokedex {
 
     handleAButtonPress() {
         if (!this.state.pokedexIsOpen) return;
-
-        if (!this.state.detailViewActive) {
+        this.state.detailViewActive ?
+            this.playPokemonCry(this.state.allPokemon[this.state.selectedPokemonIndex].name) :
             this.showPokemonDetail();
-        } else {
-            this.playPokemonCry(this.state.allPokemon[this.state.selectedPokemonIndex].name);
-        }
     }
 
     handleBButtonPress() {
         if (!this.state.pokedexIsOpen) return;
-
-        if (this.state.detailViewActive) {
-            this.hidePokemonDetail();
-        } else {
+        this.state.detailViewActive ?
+            this.hidePokemonDetail() :
             this.closePokedex();
-        }
     }
 
     setupKeyboardListeners() {
@@ -476,15 +522,10 @@ class Pokedex {
     }
 
     handleKeyboardInput(event) {
-        if (event.target === this.elements.pokemonSearch) {
-            return;
-        }
-
-        if (!this.state.pokedexIsOpen) {
+        if (event.target === this.elements.pokemonSearch) return;
+        this.state.pokedexIsOpen ?
+            this.handleOpenPokedexKey(event) :
             this.handleClosedPokedexKey(event);
-            return;
-        }
-        this.handleOpenPokedexKey(event);
     }
 
     handleClosedPokedexKey(event) {
@@ -496,29 +537,26 @@ class Pokedex {
 
     handleOpenPokedexKey(event) {
         switch (event.key) {
-            case 'ArrowUp':
-                event.preventDefault(); this.handleDpadMovement(-1); break;
-            case 'ArrowDown':
-                event.preventDefault(); this.handleDpadMovement(1); break;
-            case 'ArrowLeft':
-                event.preventDefault(); this.handleDpadMovement(-10); break;
-            case 'ArrowRight':
-                event.preventDefault(); this.handleDpadMovement(10); break;
-            case 'Enter': case 'a': case 'A':
-                event.preventDefault(); this.handleAButtonPress(); break;
-            case 'Escape': case 'b': case 'B':
-                event.preventDefault(); this.handleBButtonPress(); break;
+            case 'ArrowUp': event.preventDefault(); this.handleDpadMovement(-1); break;
+            case 'ArrowDown': event.preventDefault(); this.handleDpadMovement(1); break;
+            case 'ArrowLeft': event.preventDefault(); this.handleDpadMovement(-10); break;
+            case 'ArrowRight': event.preventDefault(); this.handleDpadMovement(10); break;
+            case 'Enter': case 'a': case 'A': event.preventDefault(); this.handleAButtonPress(); break;
+            case 'Escape': case 'b': case 'B': event.preventDefault(); this.handleBButtonPress(); break;
         }
     }
 
-    showError(message, error) {
+    handleFetchError(message, error, shouldHideDetail = false) { // Vereinheitlichte Fehlerbehandlung
         console.error(message, error);
-        this.elements.pokemonList.innerHTML = '<li style="color: red;">Fehler: ' + message + ' Bitte versuchen Sie es später erneut.</li>';
+        this.elements.pokemonList.innerHTML = `<li style="color: red;">Fehler: ${message} Bitte versuchen Sie es später erneut.</li>`;
         this.elements.pokemonImage.src = '';
         this.elements.pokemonImage.alt = 'Fehler beim Laden';
         this.resetDetailFields();
         this.resetBackgrounds();
         this.stopPokemonCry();
+        if (shouldHideDetail) {
+            this.hidePokemonDetail(); // Manchmal ist es besser, die Detailansicht zu verlassen
+        }
     }
 }
 
