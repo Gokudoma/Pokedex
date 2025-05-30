@@ -186,14 +186,14 @@ body {
     margin-right: 15px;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
+    justify-content: space-between; /* Verteilt den Platz gleichmäßig */
+    align-items: center; /* Zentriert Elemente horizontal */
     padding: 10px;
 }
 
 .pokemon-display-area {
     width: 100%;
-    height: 70%;
+    height: 70%; /* Nimmt 70% des verfügbaren vertikalen Raums ein */
     border: 5px inset #222;
     display: flex;
     justify-content: center;
@@ -444,15 +444,26 @@ body {
     box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
 }
 
-/* Styling für D-Pad und Buttons */
+/* Styling für den Container der Steuerelemente */
 .pokedex-controls {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
+    display: flex; /* Erlaubt, dass der Dpad-Wrapper und die Buttons nebeneinander liegen */
+    justify-content: space-around; /* Verteilt den Raum zwischen den Hauptgruppen */
+    align-items: flex-end; /* Richtet die Elemente unten aus (D-Pad und A/B-Buttons) */
     width: 100%;
-    margin-top: 20px;
+    margin-top: 15px; /* Abstand zum Display-Bereich */
+    padding-bottom: 10px;
 }
 
+/* NEUER WRAPPER FÜR D-PAD UND LAUTSTÄRKE */
+.dpad-and-volume-wrapper {
+    display: flex;
+    flex-direction: column; /* Lautstärke über D-Pad */
+    align-items: center; /* Zentriert beide Elemente horizontal in diesem Wrapper */
+    margin-left: 20px; /* Etwas Abstand vom linken Rand des Panels */
+    margin-right: auto; /* Schiebt diesen Wrapper nach links */
+}
+
+/* Styling für D-Pad */
 .dpad {
     position: relative;
     width: 120px;
@@ -460,6 +471,7 @@ body {
     background-color: #444;
     border-radius: 10px;
     box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+    margin-top: 10px; /* Abstand zwischen Lautstärke und D-Pad */
 }
 
 .dpad-btn {
@@ -482,7 +494,10 @@ body {
 
 .action-buttons {
     display: flex;
-    gap: 20px;
+    gap: 30px;
+    margin-bottom: 30px;
+    margin-right: 20px; /* Etwas Abstand vom rechten Rand des Panels */
+    margin-left: auto; /* Schiebt die Buttons nach rechts */
 }
 
 .action-btn {
@@ -545,4 +560,81 @@ body {
     text-align: center;
     color: #333;
     box-shadow: inset 1px 1px 2px rgba(0,0,0,0.2);
+}
+
+/* Styling für Lautstärkeregler (innerhalb des neuen Wrappers) */
+.volume-control {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 150px; /* Breite beibehalten */
+    background-color: #888;
+    padding: 5px;
+    border-radius: 5px;
+    border: 3px inset #666;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+    /* Keine Margins hier, da der Wrapper die Positionierung regelt */
+}
+
+.volume-label {
+    font-size: 0.6em;
+    color: #eee;
+    margin-bottom: 3px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.volume-slider {
+    width: 90%;
+    -webkit-appearance: none;
+    height: 8px;
+    background: #555;
+    outline: none;
+    opacity: 0.9;
+    -webkit-transition: .2s;
+    transition: opacity .2s;
+    border-radius: 4px;
+    margin-top: 3px;
+}
+
+.volume-slider:hover {
+    opacity: 1;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #4CAF50;
+    border-radius: 50%;
+    cursor: grab;
+    border: 2px solid #222;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.4);
+}
+
+.volume-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: #4CAF50;
+    border-radius: 50%;
+    cursor: grab;
+    border: 2px solid #222;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.4);
+}
+
+.volume-slider::-webkit-slider-thumb:active,
+.volume-slider::-moz-range-thumb:active {
+    cursor: grabbing;
+}
+
+.volume-percentage {
+    font-size: 0.6em;
+    color: #000;
+    margin-top: 3px;
+    font-weight: bold;
+    background-color: #fff;
+    padding: 1px 4px;
+    border-radius: 2px;
+    border: 1px solid #777;
 }

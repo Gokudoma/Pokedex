@@ -21,7 +21,7 @@ export const detailBgColors = {
 };
 
 // Hilfsfunktionen
-export const capitalizeFirstLetter = string => 
+export const capitalizeFirstLetter = string =>
     string.charAt(0).toUpperCase() + string.slice(1);
 
 export const createTypeBadge = (type) => {
@@ -50,8 +50,8 @@ export const createStatItem = (name, value) => {
 };
 
 export const findDescription = (entries) => {
-    return entries.find(entry => entry.language.name === 'de') || 
-           entries.find(entry => entry.language.name === 'en' && 
-              ['red', 'blue', 'yellow'].includes(entry.version.name)) || 
+    return entries.find(entry => entry.language.name === 'de') ||
+           entries.find(entry => entry.language.name === 'en' &&
+             ['red', 'blue', 'yellow'].includes(entry.version.name)) ||
            entries.find(entry => entry.language.name === 'en');
 };
