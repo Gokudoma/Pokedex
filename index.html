@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mein Pokédex</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="icon" href="./images/favicon.png" type="image.png">
+</head>
+<body>
+    <div class="pokedex-container">
+        <div class="pokedex-closed">
+            <div class="top-bar">
+                <div class="lens"></div>
+                <div class="lights">
+                    <div class="light red-light"></div>
+                    <div class="light yellow-light"></div>
+                    <div class="light green-light"></div>
+                </div>
+            </div>
+            <div class="mid-section">
+                <div class="curve"></div>
+                <div id="openPokedexBtn" class="pokedex-button yellow-triangle"></div>
+            </div>
+            <div class="bottom-bar">
+                <div class="speaker-grill"></div>
+            </div>
+        </div>
+
+        <div class="pokedex-open hidden">
+            <div class="pokedex-left-panel">
+                <div class="pokemon-display-area">
+                    <img id="pokemonImage" src="" alt="Pokémon Bild">
+                    <audio id="pokemonCry" src=""></audio>
+                </div>
+                <div class="pokedex-controls">
+                    <div class="dpad">
+                        <button id="dpad-up" class="dpad-btn up"></button>
+                        <button id="dpad-left" class="dpad-btn left"></button>
+                        <button id="dpad-right" class="dpad-btn right"></button>
+                        <button id="dpad-down" class="dpad-btn down"></button>
+                        <div class="dpad-center"></div>
+                    </div>
+                    <div class="action-buttons">
+                        <button id="button-b" class="action-btn b-button">B</button>
+                        <button id="button-a" class="action-btn a-button">A</button>
+                    </div>
+                </div>
+            </div>
+            <div class="pokedex-right-panel">
+                <div class="pokedex-detail-view hidden">
+                    <div class="pokedex-screen">
+                        <h2 id="pokemonName"></h2>
+                        <p id="pokemonId"></p>
+                        <div id="pokemonTypes"></div>
+                        <p id="pokemonDescription"></p>
+                    </div>
+
+                    <div id="pokemonStats" class="pokedex-stats-window"></div>
+
+                    <button id="backButton" class="pokedex-back-button">Zurück</button>
+                </div>
+
+                <div class="pokedex-list-area">
+                    <ul id="pokemonList"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
