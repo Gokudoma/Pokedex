@@ -29,6 +29,7 @@ class Pokedex {
             pokedexScreen: document.querySelector('.pokedex-screen'),
             pokemonDisplayArea: document.querySelector('.pokemon-display-area'),
             pokedexDetailView: document.querySelector('.pokedex-detail-view'),
+            pokedexListArea: document.querySelector('.pokedex-list-area'), 
             backButton: document.getElementById('backButton'),
             dpadUp: document.getElementById('dpad-up'),
             dpadDown: document.getElementById('dpad-down'),
@@ -319,6 +320,7 @@ class Pokedex {
     //Nur den Hauptcontainer der Detailansicht togglen
     toggleDetailView(show) {
         this.elements.pokedexDetailView.classList.toggle('hidden', !show);
+        this.elements.pokedexListArea.classList.toggle('hidden', show);
     }
 
     resetPokemonDisplayBackground() {

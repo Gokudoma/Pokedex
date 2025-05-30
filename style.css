@@ -220,15 +220,14 @@ body {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
-    margin-bottom: 15px; /* Abstand zur Liste darunter */
 }
 
 
 .pokedex-screen {
     border: 5px inset #808080;
     padding: 15px;
+    margin-bottom: 20px;
     flex-grow: 1;
-    margin-bottom: 50px; /* Abstand zum Stats-Feld */
     overflow-y: auto;
     color: #333;
     display: flex;
@@ -346,7 +345,6 @@ body {
     border: 5px inset #666;
     padding: 10px;
     overflow-y: auto;
-    flex-grow: 1;
 }
 
 #pokemonList {
@@ -398,9 +396,10 @@ body {
     font-family: 'Press Start 2P', cursive;
     box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
     transition: background-color 0.2s ease;
-    margin-top: 10px;
     align-self: flex-end;
-    margin-bottom: 30px;
+    margin-top: auto;
+    margin-bottom: 5px;
+    margin-right: 10px;
 }
 
 .pokedex-back-button:hover {
