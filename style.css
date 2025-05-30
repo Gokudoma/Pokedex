@@ -53,6 +53,7 @@ body {
     position: relative;
     margin-left: 20px;
 }
+
 .lens::before { /* Glanzeffekt */
     content: '';
     position: absolute;
@@ -103,6 +104,7 @@ body {
     transform-origin: top center;
     background: linear-gradient(to bottom, transparent 50%, #ff0000 50%);
 }
+
 .curve::before {
     content: '';
     position: absolute;
@@ -150,6 +152,7 @@ body {
     border-radius: 5px;
     position: relative;
 }
+
 .speaker-grill::before,
 .speaker-grill::after {
     content: '';
@@ -227,6 +230,7 @@ body {
     border: 5px inset #808080;
     padding: 15px;
     margin-bottom: 20px;
+    line-height: 1.2em;
     flex-grow: 1;
     overflow-y: auto;
     color: #333;
@@ -381,6 +385,7 @@ body {
     50% { opacity: 0.5; }
     100% { opacity: 1; }
 }
+
 .flash {
     animation: flash 0.4s ease-in-out;
 }
@@ -438,6 +443,7 @@ body {
     cursor: pointer;
     transition: background-color 0.1s;
 }
+
 .dpad-btn:hover { background-color: #555; }
 .dpad-btn:active { background-color: #111; }
 
@@ -494,7 +500,7 @@ body {
     gap: 8px 15px;
     min-height: 120px;
     overflow-y: auto;
-    flex-shrink: 0; /* Verhindert, dass das Fenster schrumpft */
+    flex-shrink: 0; /* Fenster schrumpft nicht */
     transition: background-color 0.3s ease-in-out;
 }
 
