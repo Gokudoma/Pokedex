@@ -6,7 +6,7 @@
     <title>Mein Pokédex</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="icon" href="./images/favicon.png" type="image.png">
+    <link rel="icon" href="./images/favicon.png" type="image/png">
 </head>
 <body>
     <div class="pokedex-container">
@@ -20,8 +20,7 @@
                 </div>
             </div>
             <div class="mid-section">
-                <div class="curve"></div>
-                <div id="openPokedexBtn" class="pokedex-button yellow-triangle"></div>
+                <div id="openPokedexBtn" class="yellow-triangle"></div>
             </div>
             <div class="bottom-bar">
                 <div class="speaker-grill"></div>
@@ -70,7 +69,21 @@
 
                     <div id="pokemonStats" class="pokedex-stats-window"></div>
 
-                    <button id="backButton" class="pokedex-back-button">Zurück</button>
+                    <div class="detail-view-buttons">
+                        <button id="extraDetailsBtn" class="action-btn details-button">D</button>
+                        <button id="backButton" class="pokedex-back-button">Zurück</button>
+                    </div>
+                </div>
+
+                <div class="pokedex-extra-details-view hidden">
+                    <div class="pokedex-screen extra-details-screen">
+                        <h2 id="extraDetailsName"></h2>
+                        <div id="pokemonHabitat"></div>
+                        <div id="pokemonHeightWeight"></div>
+                        <div id="pokemonMoves"></div>
+                        <div id="pokemonEvolution"></div>
+                    </div>
+                    <button id="backButtonExtra" class="pokedex-back-button">Zurück</button>
                 </div>
 
                 <div class="pokedex-list-area">

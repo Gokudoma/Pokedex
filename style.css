@@ -286,11 +286,11 @@ body {
     flex-grow: 1;
 }
 
-
 .pokedex-screen {
     border: 5px inset #808080;
     padding: 15px;
-    margin-bottom: 20px;
+    max-height: 290px;
+    margin-bottom: 5px;
     line-height: 1.2em;
     flex-grow: 1;
     overflow-y: auto;
@@ -299,6 +299,10 @@ body {
     flex-direction: column;
     position: relative;
     transition: background-color 0.3s ease-in-out;
+}
+
+.pokedex-extra-details-view .pokedex-screen {
+    overflow-y: auto;
 }
 
 .pokedex-screen h2 {
@@ -453,6 +457,15 @@ body {
     animation: flash 0.4s ease-in-out;
 }
 
+.detail-view-buttons {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+    margin-bottom: 5px;
+    padding: 0 10px;
+}
+
 .pokedex-back-button {
     background-color: #4CAF50;
     color: white;
@@ -464,10 +477,6 @@ body {
     font-family: 'Press Start 2P', cursive;
     box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
     transition: background-color 0.2s ease;
-    align-self: flex-end;
-    margin-top: auto;
-    margin-bottom: 5px;
-    margin-right: 10px;
 }
 
 .pokedex-back-button:hover {
@@ -505,37 +514,34 @@ body {
     height: 120px;
     background-color: #444;
     border-radius: 10px;
-    box-shadow: inset 0 0 15px rgba(0,0,0,0.6); /* Stärkerer Innenschatten für Tiefe */
+    box-shadow: inset 0 0 15px rgba(0,0,0,0.6);
     margin-top: 10px;
-    /* Optional: Leichter 3D-Effekt */
     transform: perspective(100px) rotateX(5deg);
     transition: transform 0.2s ease-out;
 }
 
 .dpad:active {
-    transform: perspective(100px) rotateX(0deg); /* D-Pad flacher beim Klicken */
+    transform: perspective(100px) rotateX(0deg);
 }
 
 .dpad-btn {
     position: absolute;
     width: 40px;
     height: 40px;
-    background-color: #333; /* Einheitliche Farbe */
+    background-color: #333;
     border: none;
     cursor: pointer;
-    transition: background-color 0.1s ease, transform 0.1s ease; /* Übergang für Hover/Active */
+    transition: background-color 0.1s ease, transform 0.1s ease;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1.8em; /* Größe der Pfeile */
-    color: #bbb; /* Farbe der Pfeile */
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* Leichter Schatten für Pfeile */
+    font-size: 1.8em;
+    color: #bbb;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
 }
 
-/* Hover- und Active-Effekte für die Buttons */
 .dpad-btn:active {
-    background-color: #222; /* Dunkler und leicht eingedrückt beim Klicken */
-    /* Dies bleibt gleich, da es der Standard für alle Buttons ist */
+    background-color: #222;
 }
 
 .dpad-btn.up:active {
@@ -543,45 +549,36 @@ body {
 }
 
 .dpad-btn.down:active {
-    transform: translateY(1px) scale(0.98); /* Bewegt sich leicht nach unten/oben */
+    transform: translateY(1px) scale(0.98);
 }
 
-.dpad-btn.left:active {
-    transform: translateX(1px) scale(0.98); /* Bewegt sich leicht nach rechts */
-}
-
-.dpad-btn.right:active {
-    transform: translateX(-1px) scale(0.98); /* Bewegt sich leicht nach links */
-}
-
-/* Positionierung und individuelle Formen */
 .dpad-btn.up {
     top: 0;
     left: 40px;
     border-radius: 5px 5px 0 0;
 }
-.dpad-btn.up::after { content: '▲'; } /* Unicode-Pfeil */
+.dpad-btn.up::after { content: '▲'; }
 
 .dpad-btn.down {
     bottom: 0;
     left: 40px;
     border-radius: 0 0 5px 5px;
 }
-.dpad-btn.down::after { content: '▼'; } /* Unicode-Pfeil */
+.dpad-btn.down::after { content: '▼'; }
 
 .dpad-btn.left {
     left: 0;
     top: 40px;
     border-radius: 5px 0 0 5px;
 }
-.dpad-btn.left::after { content: '◀'; } /* Unicode-Pfeil */
+.dpad-btn.left::after { content: '◀'; }
 
 .dpad-btn.right {
     right: 0;
     top: 40px;
     border-radius: 0 5px 5px 0;
 }
-.dpad-btn.right::after { content: '▶'; } /* Unicode-Pfeil */
+.dpad-btn.right::after { content: '▶'; }
 
 .action-buttons {
     display: flex;
@@ -602,6 +599,20 @@ body {
     cursor: pointer;
     box-shadow: inset 2px 2px 5px rgba(0,0,0,0.3);
     transition: background-color 0.1s;
+}
+
+/* Styling für den D-Button (Details) */
+.details-button {
+    background-color: #007bff;
+}
+
+.details-button:hover {
+    background-color: #0056b3;
+}
+
+.details-button:active {
+    background-color: #004085;
+    transform: translateY(2px);
 }
 
 .a-button { background-color: #4CAF50; }

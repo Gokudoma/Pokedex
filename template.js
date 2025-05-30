@@ -1,6 +1,6 @@
 // Konstanten und Hilfsfunktionen
 export const POKEAPI_BASE_URL = 'https://pokeapi.co/api/v2/';
-export const MAX_POKEMON_ID = 151;
+export const MAX_POKEMON_ID = 151; // Bis Generation 1
 
 // Typenfarben für Badges
 export const typeColors = {
@@ -26,9 +26,9 @@ export const capitalizeFirstLetter = string =>
 
 export const createTypeBadge = (type) => {
     const badge = document.createElement('span');
-    badge.classList.add('type-badge');
+    badge.classList.add('type-badge', `type-${type}`);
     badge.textContent = capitalizeFirstLetter(type);
-    badge.style.backgroundColor = typeColors[type] || '#888';
+ 
     return badge;
 };
 
@@ -54,4 +54,107 @@ export const findDescription = (entries) => {
            entries.find(entry => entry.language.name === 'en' &&
              ['red', 'blue', 'yellow'].includes(entry.version.name)) ||
            entries.find(entry => entry.language.name === 'en');
+};
+
+
+// NEUE HILFSFUNKTIONEN FÜR ZUSÄTZLICHE DETAILS
+
+export const createDetailSection = (titleText, contentHtml) => {
+    const sectionDiv = document.createElement('div');
+    const titleSpan = document.createElement('b');
+    titleSpan.textContent = titleText;
+    sectionDiv.appendChild(titleSpan);
+    sectionDiv.appendChild(document.createElement('br'));
+
+    const contentDiv = document.createElement('span');
+    if (typeof contentHtml === 'string') {
+        contentDiv.innerHTML = contentHtml;
+    } else if (contentHtml instanceof HTMLElement) {
+        contentDiv.appendChild(contentHtml);
+    }
+    sectionDiv.appendChild(contentDiv);
+    return sectionDiv;
+};
+
+export const createMovesList = (moves) => {
+    const movesList = document.createElement('div');
+    if (moves.length === 0) {
+        movesList.textContent = 'Keine Attacken bekannt.';
+        return movesList;
+    }
+
+    const ul = document.createElement('ul');
+    ul.style.listStyle = 'none';
+    ul.style.paddingLeft = '0';
+    ul.style.columns = '2';
+    ul.style.maxHeight = '150px';
+    ul.style.overflowY = 'auto';
+    ul.style.border = '1px solid #ccc';
+    ul.style.padding = '5px';
+
+    moves.slice(0, 20).forEach(move => {
+        const li = document.createElement('li');
+        li.textContent = capitalizeFirstLetter(move.move.name.replace('-', ' '));
+        ul.appendChild(li);
+    });
+    movesList.appendChild(ul);
+    return movesList;
+};
+
+export const createEvolutionLine = async (evolutionChainData) => {
+    const evolutionDiv = document.createElement('div');
+
+    let current = evolutionChainData.chain;
+
+    while (current) {
+        const stageDiv = document.createElement('div');
+        stageDiv.style.display = 'flex';
+        stageDiv.style.alignItems = 'center';
+        stageDiv.style.marginBottom = '5px';
+
+        const pokemonName = capitalizeFirstLetter(current.species.name);
+
+        const idMatch = current.species.url.match(/\/(\d+)\/$/);
+        const pokemonId = idMatch ? idMatch[1] : null;
+        let imageUrl = '';
+        if (pokemonId) {
+            try {
+                const pokemonData = await fetch(`${POKEAPI_BASE_URL}pokemon/${pokemonId}/`).then(res => res.json());
+                imageUrl = pokemonData.sprites.front_default;
+            } catch (e) {
+                console.warn(`Fehler beim Laden des Bildes für ${pokemonName} (ID: ${pokemonId}):`, e);
+                imageUrl = '';
+            }
+        }
+        
+        if (imageUrl) {
+            const img = document.createElement('img');
+            img.src = imageUrl;
+            img.alt = pokemonName;
+            img.style.width = '50px';
+            img.style.height = '50px';
+            img.style.marginRight = '5px';
+            img.style.objectFit = 'contain';
+            stageDiv.appendChild(img);
+        }
+
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = pokemonName;
+        nameSpan.style.fontWeight = 'bold';
+        stageDiv.appendChild(nameSpan);
+        
+        evolutionDiv.appendChild(stageDiv);
+
+        if (current.evolves_to && current.evolves_to.length > 0) {
+            const arrowSpan = document.createElement('span');
+            arrowSpan.textContent = ' → ';
+            arrowSpan.style.fontWeight = 'bold';
+            arrowSpan.style.margin = '0 10px';
+            evolutionDiv.appendChild(arrowSpan);
+            current = current.evolves_to[0];
+        } else {
+            current = null;
+        }
+    }
+    return evolutionDiv;
 };
