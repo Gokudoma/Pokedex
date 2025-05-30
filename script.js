@@ -1,6 +1,6 @@
 import {
     POKEAPI_BASE_URL, MAX_POKEMON_ID,
-    typeColors, detailBgColors, // typeColors wird im JS nicht direkt verwendet, kann ggf. entfernt werden
+    typeColors, detailBgColors,
     capitalizeFirstLetter, createTypeBadge,
     createStatItem, findDescription
 } from './template.js';
@@ -36,7 +36,8 @@ class Pokedex {
             dpadLeft: document.getElementById('dpad-left'),
             dpadRight: document.getElementById('dpad-right'),
             buttonA: document.getElementById('button-a'),
-            buttonB: document.getElementById('button-b')
+            buttonB: document.getElementById('button-b'),
+            pokemonSearch: document.getElementById('pokemonSearch') // Hinzugefügt für das Suchfeld
         };
     }
 
@@ -46,7 +47,8 @@ class Pokedex {
             detailedPokemonData: {},
             selectedPokemonIndex: 0,
             detailViewActive: false,
-            pokedexIsOpen: false
+            pokedexIsOpen: false,
+            searchTerm: '' // Zustand für den Suchbegriff
         };
     }
 
@@ -54,20 +56,23 @@ class Pokedex {
         this.elements.pokedexClosed.classList.remove('hidden');
         this.elements.pokedexOpen.classList.add('hidden');
         this.elements.pokedexDetailView.classList.add('hidden');
-        this.resetBackgrounds(); // Aufruf der neuen Reset-Funktion
+        this.resetBackgrounds();
         this.resetDetailFields();
+        this.elements.pokemonSearch.value = ''; // Suchfeld beim Start leeren
+        this.state.searchTerm = ''; // Suchbegriff zurücksetzen
     }
 
     initEventListeners() {
         this.elements.openPokedexBtn.addEventListener('click', () => this.togglePokedex());
         this.elements.backButton.addEventListener('click', () => this.hidePokemonDetail());
         this.elements.pokemonList.addEventListener('click', (event) => this.handlePokemonListClick(event));
+        // Event Listener für das Suchfeld
+        this.elements.pokemonSearch.addEventListener('input', (event) => this.handleSearchInput(event));
         this.setupDpadListeners();
         this.setupButtonListeners();
         this.setupKeyboardListeners();
     }
 
-    // Hauptfunktionen
     togglePokedex() {
         this.state.pokedexIsOpen ? this.closePokedex() : this.openPokedex();
     }
@@ -80,7 +85,7 @@ class Pokedex {
         if (this.state.allPokemon.length === 0) {
             this.fetchPokemonList();
         } else {
-            this.selectPokemonListItem(this.state.selectedPokemonIndex);
+            this.displayPokemonList();
         }
     }
 
@@ -91,14 +96,12 @@ class Pokedex {
         this.hidePokemonDetail();
     }
 
-    // Datenabruf
     async fetchPokemonList() {
         try {
             this.elements.pokemonList.innerHTML = '<li>Lade Pokémon...</li>';
             const response = await this.fetchData(`${POKEAPI_BASE_URL}pokemon?limit=${MAX_POKEMON_ID}`);
             this.state.allPokemon = response.results;
             this.displayPokemonList();
-            this.selectPokemonListItem(0);
         } catch (error) {
             this.showError('Fehler beim Abrufen der Pokémon-Liste.', error);
         }
@@ -113,23 +116,47 @@ class Pokedex {
             return await response.json();
         } catch (error) {
             console.error(`Fehler beim Abrufen von ${url}:`, error);
-            throw error; // Wichtig: Fehler weiterwerfen
+            throw error;
         }
     }
 
-    // Anzeigefunktionen
     displayPokemonList() {
         this.elements.pokemonList.innerHTML = '';
-        this.state.allPokemon.forEach((pokemon, index) => {
-            this.elements.pokemonList.appendChild(this.createPokemonListItem(pokemon, index));
+        // Filtere Pokémon basierend auf dem Suchbegriff
+        const filteredPokemon = this.state.allPokemon.filter(pokemon =>
+            pokemon.name.toLowerCase().includes(this.state.searchTerm.toLowerCase())
+        );
+
+        if (filteredPokemon.length === 0) {
+            this.elements.pokemonList.innerHTML = '<li>Keine Ergebnisse gefunden.</li>';
+            this.resetPokemonDisplayBackground();
+            this.elements.pokemonImage.src = '';
+            this.elements.pokemonImage.alt = 'Kein Pokémon gefunden';
+            this.resetDetailFields();
+            this.stopPokemonCry();
+            return;
+        }
+
+        filteredPokemon.forEach((pokemon) => {
+            this.elements.pokemonList.appendChild(this.createPokemonListItem(pokemon));
         });
+
+        // Überprüfe, ob das aktuell ausgewählte Pokémon noch in der gefilterten Liste ist
+        const currentSelectedName = this.state.allPokemon[this.state.selectedPokemonIndex]?.name;
+        const currentSelectedInFilteredIndex = filteredPokemon.findIndex(p => p.name === currentSelectedName);
+        
+        // Wähle das erste Element aus, wenn das aktuelle nicht mehr in der Liste ist
+        // oder wenn noch nichts ausgewählt ist.
+        this.selectPokemonListItem(currentSelectedInFilteredIndex !== -1 ? currentSelectedInFilteredIndex : 0);
     }
 
-    createPokemonListItem(pokemon, index) {
+    createPokemonListItem(pokemon) {
         const listItem = document.createElement('li');
-        listItem.textContent = `${index + 1}. ${capitalizeFirstLetter(pokemon.name)}`;
+        // Speichere den ursprünglichen Index (ID) des Pokémon
+        const originalIndex = this.state.allPokemon.findIndex(p => p.name === pokemon.name);
+        listItem.textContent = `${originalIndex + 1}. ${capitalizeFirstLetter(pokemon.name)}`;
         listItem.dataset.url = pokemon.url;
-        listItem.dataset.id = index + 1;
+        listItem.dataset.id = originalIndex + 1; // Speichere die ID für direkte Auswahl
         return listItem;
     }
 
@@ -145,14 +172,18 @@ class Pokedex {
         const currentActive = document.querySelector('#pokemonList li.active');
         if (currentActive) currentActive.classList.remove('active');
 
-        this.state.selectedPokemonIndex = Math.max(0, Math.min(newIndex, listItems.length - 1));
-        const newSelected = listItems[this.state.selectedPokemonIndex];
-        newSelected.classList.add('active');
-        newSelected.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        const newSelectedFilteredItem = listItems[newIndex];
+        // Aktualisiere den globalen selectedPokemonIndex basierend auf dem ursprünglichen Index
+        const newSelectedOriginalId = parseInt(newSelectedFilteredItem.dataset.id) - 1;
+
+        this.state.selectedPokemonIndex = newSelectedOriginalId;
+
+        newSelectedFilteredItem.classList.add('active');
+        newSelectedFilteredItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     async updatePokemonPreview() {
-        if (this.state.detailViewActive) return;
+        if (this.state.detailViewActive) return; // Nicht aktualisieren, wenn Detailansicht aktiv
 
         const pokemon = this.state.allPokemon[this.state.selectedPokemonIndex];
         if (!pokemon) return;
@@ -162,7 +193,7 @@ class Pokedex {
 
         this.updatePokemonImage(currentPokemonData);
         this.updateDisplayBackground(currentPokemonData);
-        this.resetDetailFields(); // Detailfelder für die Vorschau leeren
+        this.resetDetailFields(); // Leere die Detailfelder, wenn nur die Vorschau aktualisiert wird
     }
 
     async getOrFetchPokemonData(name, url) {
@@ -196,7 +227,6 @@ class Pokedex {
         this.elements.pokemonStats.innerHTML = '';
     }
 
-    // Detailansicht
     async showPokemonDetail() {
         this.state.detailViewActive = true;
         this.toggleDetailViewVisibility(true);
@@ -214,6 +244,9 @@ class Pokedex {
     toggleDetailViewVisibility(show) {
         this.elements.pokedexDetailView.classList.toggle('hidden', !show);
         this.elements.pokedexListArea.classList.toggle('hidden', show);
+        // Auch das Suchfeld verstecken, wenn Detailansicht aktiv
+        this.elements.pokemonSearch.classList.toggle('hidden', show); 
+        this.elements.pokemonSearch.parentNode.classList.toggle('hidden', show); // Such-Container auch verstecken
     }
 
     getSelectedPokemonId() {
@@ -293,7 +326,9 @@ class Pokedex {
     }
 
     updateBackgroundColor(element, type) {
+        // Entferne alle existierenden Typ-Klassen
         Object.keys(detailBgColors).forEach(t => element.classList.remove(`bg-${t}`));
+        // Füge die neue Typ-Klasse hinzu
         if (detailBgColors[type]) element.classList.add(`bg-${type}`);
     }
 
@@ -324,9 +359,9 @@ class Pokedex {
         this.state.detailViewActive = false;
         this.toggleDetailViewVisibility(false);
         this.resetDetailFields();
-        this.resetBackgrounds(); // Aufruf der neuen Reset-Funktion
+        this.resetBackgrounds();
         this.stopPokemonCry();
-        this.selectPokemonListItem(this.state.selectedPokemonIndex);
+        this.displayPokemonList(); // Liste erneut anzeigen, um die Auswahl zu aktualisieren
     }
 
     stopPokemonCry() {
@@ -342,15 +377,31 @@ class Pokedex {
         });
     }
 
-    // Event Handler Dispatcher (ausgelagert aus initEventListeners)
+    resetPokemonDisplayBackground() {
+        Object.keys(detailBgColors).forEach(t =>
+            this.elements.pokemonDisplayArea.classList.remove(`bg-${t}`)
+        );
+    }
+
     handlePokemonListClick(event) {
         const listItem = event.target.closest('li');
+        // Nur auf Listen-Elemente reagieren und wenn Pokédex offen und nicht in Detailansicht
         if (listItem && this.state.pokedexIsOpen && !this.state.detailViewActive) {
-            const index = Array.from(this.elements.pokemonList.children).indexOf(listItem);
-            if (index !== -1) {
-                this.selectPokemonListItem(index);
+            const pokemonIdClicked = parseInt(listItem.dataset.id);
+            // Der dataset.id ist 1-basiert, unser Index ist 0-basiert
+            const originalIndex = pokemonIdClicked - 1; 
+
+            if (originalIndex !== -1) {
+                this.state.selectedPokemonIndex = originalIndex;
+                this.displayPokemonList(); // Ruft updatePokemonPreview auf
             }
         }
+    }
+
+    // NEU: Handler für das Suchfeld
+    handleSearchInput(event) {
+        this.state.searchTerm = event.target.value;
+        this.displayPokemonList(); // Liste basierend auf neuem Suchbegriff neu rendern
     }
 
     setupDpadListeners() {
@@ -362,7 +413,38 @@ class Pokedex {
 
     handleDpadMovement(offset) {
         if (this.state.pokedexIsOpen && !this.state.detailViewActive) {
-            this.selectPokemonListItem(this.state.selectedPokemonIndex + offset);
+            const filteredPokemon = this.state.allPokemon.filter(pokemon =>
+                pokemon.name.toLowerCase().includes(this.state.searchTerm.toLowerCase())
+            );
+
+            if (filteredPokemon.length === 0) return;
+
+            // Finde den Index des aktuell ausgewählten Pokémon in der GEFILTERTEN Liste
+            const currentSelectedName = this.state.allPokemon[this.state.selectedPokemonIndex]?.name;
+            let currentFilteredIndex = filteredPokemon.findIndex(p => p.name === currentSelectedName);
+
+            // Wenn das aktuell ausgewählte Pokémon nicht in der gefilterten Liste ist, beginne bei 0
+            if (currentFilteredIndex === -1) {
+                currentFilteredIndex = 0;
+            }
+
+            let newFilteredIndex = currentFilteredIndex + offset;
+
+            // Grenzen überprüfen
+            if (newFilteredIndex < 0) {
+                newFilteredIndex = 0; // Oder filteredPokemon.length - 1 für Wrap-around
+            } else if (newFilteredIndex >= filteredPokemon.length) {
+                newFilteredIndex = filteredPokemon.length - 1; // Oder 0 für Wrap-around
+            }
+
+            // Finde den ursprünglichen Index (nicht gefiltert) des neuen Pokémon
+            const newPokemonName = filteredPokemon[newFilteredIndex].name;
+            const newOriginalIndex = this.state.allPokemon.findIndex(p => p.name === newPokemonName);
+
+            if (newOriginalIndex !== -1) {
+                this.state.selectedPokemonIndex = newOriginalIndex;
+                this.displayPokemonList(); // Dies aktualisiert die Markierung und die Vorschau
+            }
         }
     }
 
@@ -375,8 +457,10 @@ class Pokedex {
         if (!this.state.pokedexIsOpen) return;
 
         if (!this.state.detailViewActive) {
+            // Wenn nicht in Detailansicht, zeige Details an
             this.showPokemonDetail();
         } else {
+            // Wenn in Detailansicht, spiele den Pokémon-Ruf erneut ab
             this.playPokemonCry(this.state.allPokemon[this.state.selectedPokemonIndex].name);
         }
     }
@@ -385,8 +469,10 @@ class Pokedex {
         if (!this.state.pokedexIsOpen) return;
 
         if (this.state.detailViewActive) {
+            // Wenn in Detailansicht, gehe zurück zur Liste
             this.hidePokemonDetail();
         } else {
+            // Wenn in Listenansicht, schließe den Pokédex
             this.closePokedex();
         }
     }
@@ -396,6 +482,11 @@ class Pokedex {
     }
 
     handleKeyboardInput(event) {
+        // Ignoriere Tastatureingaben, wenn ein Suchfeld aktiv ist (um doppelte Logik zu vermeiden)
+        if (event.target === this.elements.pokemonSearch) {
+            return;
+        }
+
         if (!this.state.pokedexIsOpen) {
             this.handleClosedPokedexKey(event);
             return;
@@ -404,8 +495,9 @@ class Pokedex {
     }
 
     handleClosedPokedexKey(event) {
+        // Leertaste öffnet den Pokédex, wenn er geschlossen ist
         if (event.key === ' ') {
-            event.preventDefault();
+            event.preventDefault(); // Verhindert das Scrollen der Seite
             this.openPokedex();
         }
     }
@@ -420,24 +512,22 @@ class Pokedex {
                 event.preventDefault(); this.handleDpadMovement(-10); break;
             case 'ArrowRight':
                 event.preventDefault(); this.handleDpadMovement(10); break;
-            case 'Enter': case 'a': case 'A':
+            case 'Enter': case 'a': case 'A': // 'Enter' oder 'a' für A-Button
                 event.preventDefault(); this.handleAButtonPress(); break;
-            case 'Escape': case 'b': case 'B':
+            case 'Escape': case 'b': case 'B': // 'Escape' oder 'b' für B-Button
                 event.preventDefault(); this.handleBButtonPress(); break;
         }
     }
 
-    // Verbesserte Fehleranzeige für den Benutzer
     showError(message, error) {
         console.error(message, error);
         this.elements.pokemonList.innerHTML = '<li style="color: red;">Fehler: ' + message + ' Bitte versuchen Sie es später erneut.</li>';
         this.elements.pokemonImage.src = '';
         this.elements.pokemonImage.alt = 'Fehler beim Laden';
         this.resetDetailFields();
-        this.resetBackgrounds(); // Auch hier den Reset der Hintergründe aufrufen
+        this.resetBackgrounds();
         this.stopPokemonCry();
     }
 }
 
-// Initialize
 document.addEventListener('DOMContentLoaded', () => new Pokedex());
