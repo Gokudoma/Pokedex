@@ -56,9 +56,6 @@ export const findDescription = (entries) => {
            entries.find(entry => entry.language.name === 'en');
 };
 
-
-// NEUE HILFSFUNKTIONEN FÜR ZUSÄTZLICHE DETAILS
-
 export const createDetailSection = (titleText, contentHtml) => {
     const sectionDiv = document.createElement('div');
     const titleSpan = document.createElement('b');

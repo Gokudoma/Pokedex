@@ -368,7 +368,7 @@ class Pokedex {
     async showExtraDetailView() {
         if (!this.state.pokedexIsOpen) return;
         if (!this.state.detailViewActive) await this.showPokemonDetail();
-        if (!this.state.detailViewActive) return; // Abbrechen, wenn showPokemonDetail fehlschlägt
+        if (!this.state.detailViewActive) return;
 
         this.elements.pokedexDetailView.classList.add('hidden');
         this.elements.pokedexExtraDetailsView.classList.remove('hidden');
