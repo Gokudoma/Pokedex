@@ -797,4 +797,8 @@ body {
     .pokedex-screen {
         height: 10vh;
     }
+
+    .volume-control {
+        display: none;
+    }
 }
