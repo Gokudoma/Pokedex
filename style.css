@@ -741,17 +741,23 @@ body {
 @media (max-width: 860px) {
 
     .pokedex-left-panel {
-        height: 35vh;
+        height: 30vh;
         margin-right: 0px;
         margin-bottom: 20px;
     }
 
+    .pokedex-list-area {
+        margin-bottom: 35px;
+        height: 10vh;
+    }
+
     .pokedex-right-panel {
         height: 40vh;
+        overflow: hidden;
     }
 
     .pokedex-container {
-        height: 90vh;
+        height: 75vh;
     }
 
     .pokedex-open {
@@ -782,5 +788,13 @@ body {
 
     .dpad {
         right: 20px;
+    }
+
+    .pokedex-stats-window {
+        margin-bottom: 10px;
+    }
+
+    .pokedex-screen {
+        height: 10vh;
     }
 }
