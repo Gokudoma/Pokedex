@@ -1,8 +1,6 @@
 body {
     font-family: 'Press Start 2P', cursive;
-    background-image: url(./images/background.jpg);
-    background-repeat: no-repeat;
-    background-size: 100% auto;
+    background-color: yellow;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -738,4 +736,51 @@ body {
     padding: 1px 4px;
     border-radius: 2px;
     border: 1px solid #777;
+}
+
+@media (max-width: 860px) {
+
+    .pokedex-left-panel {
+        height: 35vh;
+        margin-right: 0px;
+        margin-bottom: 20px;
+    }
+
+    .pokedex-right-panel {
+        height: 40vh;
+    }
+
+    .pokedex-container {
+        height: 90vh;
+    }
+
+    .pokedex-open {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .pokedex-controls {
+        display: flex;
+        justify-content: center;
+    }
+
+    .dpad-and-volume-wrapper {
+        margin: 0px;
+    }
+
+    .action-buttons {
+        margin: 0px;
+    }
+
+    .a-button {
+        margin: 0px;
+    }
+
+    .b-button {
+        display: none;
+    }
+
+    .dpad {
+        right: 20px;
+    }
 }

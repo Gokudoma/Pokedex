@@ -78,7 +78,7 @@ class Pokedex {
         this.elements.pokedexClosed.classList.remove('hidden', 'opening', 'closing');
         this.elements.pokedexOpen.classList.add('hidden');
         this.elements.pokedexOpen.classList.remove('opened');
-        this.elements.pokedexDetailView.classList.add('hidden'); // <-- Hinzugefügt
+        this.elements.pokedexDetailView.classList.add('hidden');
         this.elements.pokedexExtraDetailsView.classList.add('hidden'); // <-- Hinzugefügt
         this.elements.extraDetailsBtn.disabled = true;
     }
@@ -120,7 +120,7 @@ class Pokedex {
     openPokedex() {
         if (this.state.pokedexIsOpen) return;
         this.state.pokedexIsOpen = true;
-        this.resetPokedexVisibility(); // <-- Hinzugefügt: Stellt sicher, dass die Detailansichten beim Öffnen hidden sind
+        this.resetPokedexVisibility();
         this.animatePokedexOpen();
         if (this.state.allPokemon.length === 0) {
             this.fetchPokemonList();
@@ -616,7 +616,7 @@ class Pokedex {
         if (originalIndex !== -1 && this.state.selectedPokemonIndex !== originalIndex) {
             this.state.selectedPokemonIndex = originalIndex;
             this.displayPokemonList();
-            this.hidePokemonDetail(); // <-- Hinzugefügt: Versteckt die Detailansicht, wenn ein *neues* Pokémon ausgewählt wird.
+            this.hidePokemonDetail();
         } else if (this.state.selectedPokemonIndex === originalIndex && !this.state.detailViewActive && !this.state.extraDetailViewActive) {
             this.showPokemonDetail();
         }
