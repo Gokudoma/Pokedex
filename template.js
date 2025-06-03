@@ -28,7 +28,7 @@ export const createTypeBadge = (type) => {
     const badge = document.createElement('span');
     badge.classList.add('type-badge', `type-${type}`);
     badge.textContent = capitalizeFirstLetter(type);
- 
+    
     return badge;
 };
 
@@ -51,7 +51,7 @@ export const createStatItem = (name, value) => {
 
 export const findDescription = (entries) => {
     return entries.find(entry => entry.language.name === 'en' &&
-                        ['red', 'blue', 'yellow'].includes(entry.version.name)) ||
+                            ['red', 'blue', 'yellow'].includes(entry.version.name)) ||
            entries.find(entry => entry.language.name === 'en');
 };
 
@@ -142,11 +142,10 @@ export const createEvolutionLine = async (evolutionChainData) => {
         evolutionDiv.appendChild(stageDiv);
 
         if (current.evolves_to && current.evolves_to.length > 0) {
-            const arrowSpan = document.createElement('span');
-            arrowSpan.textContent = ' → ';
-            arrowSpan.style.fontWeight = 'bold';
-            arrowSpan.style.margin = '0 10px';
-            evolutionDiv.appendChild(arrowSpan);
+            const arrowIcon = document.createElement('i');
+            arrowIcon.classList.add('fas', 'fa-arrow-right'); // Font Awesome Icon
+            arrowIcon.style.margin = '0 10px';
+            evolutionDiv.appendChild(arrowIcon);
             current = current.evolves_to[0];
         } else {
             current = null;

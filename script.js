@@ -8,8 +8,7 @@ import {
     getOrFetchPokemonData,
     loadPokemonDataForDetail,
     loadSpeciesDataForDetail,
-    loadEvolutionChainData,
-    fetchAndCacheData
+    loadEvolutionChainData
 } from './dataHandler.js';
 
 import {
@@ -24,7 +23,6 @@ import {
     displayPokemonList,
     highlightSelectedListItemAndScroll,
     updateDetailView,
-    applyBackgroundColors,
     updateExtraDetailView,
     resetBackgrounds,
     resetPokemonDisplayBackground,
@@ -160,14 +158,14 @@ class Pokedex {
         this.elements.pokedexOpen.classList.remove('opened');
         this.elements.pokedexClosed.classList.add('opening');
         setTimeout(() => this.elements.pokedexOpen.classList.add('opened'), 10);
-        this.elements.pokedexClosed.addEventListener('transitionend', this.handleOpenTransitionEnd);
+        this.elements.pokedexClosed.addEventListener('transitionend', this._handleOpenTransitionEnd);
     }
 
-    handleOpenTransitionEnd = (event) => {
+    _handleOpenTransitionEnd = (event) => {
         if (event.target === this.elements.pokedexClosed && event.propertyName === 'transform') {
             this.elements.pokedexClosed.classList.add('hidden');
             this.elements.pokedexClosed.classList.remove('opening');
-            this.elements.pokedexClosed.removeEventListener('transitionend', this.handleOpenTransitionEnd);
+            this.elements.pokedexClosed.removeEventListener('transitionend', this._handleOpenTransitionEnd);
         }
     };
 
@@ -185,21 +183,21 @@ class Pokedex {
         this.elements.pokedexOpen.classList.remove('opened');
         this.elements.pokedexClosed.classList.remove('hidden', 'opening');
         setTimeout(() => this.elements.pokedexClosed.classList.add('closing'), 10);
-        this.elements.pokedexClosed.addEventListener('transitionend', this.handleCloseTransitionEnd);
-        this.elements.pokedexOpen.addEventListener('transitionend', this.handleCloseTransitionEndOpen);
+        this.elements.pokedexClosed.addEventListener('transitionend', this._handleCloseTransitionEnd);
+        this.elements.pokedexOpen.addEventListener('transitionend', this._handleCloseTransitionEndOpen);
     }
 
-    handleCloseTransitionEnd = (event) => {
+    _handleCloseTransitionEnd = (event) => {
         if (event.target === this.elements.pokedexClosed && event.propertyName === 'transform') {
             this.elements.pokedexClosed.classList.remove('closing');
-            this.elements.pokedexClosed.removeEventListener('transitionend', this.handleCloseTransitionEnd);
+            this.elements.pokedexClosed.removeEventListener('transitionend', this._handleCloseTransitionEnd);
         }
     };
 
-    handleCloseTransitionEndOpen = (event) => {
+    _handleCloseTransitionEndOpen = (event) => {
         if (event.target === this.elements.pokedexOpen && event.propertyName === 'transform') {
             this.elements.pokedexOpen.classList.add('hidden');
-            this.elements.pokedexOpen.removeEventListener('transitionend', this.handleCloseTransitionEndOpen);
+            this.elements.pokedexOpen.removeEventListener('transitionend', this._handleCloseTransitionEndOpen);
         }
     };
 
@@ -266,21 +264,21 @@ class Pokedex {
     async updatePokemonPreview() {
         if (this.state.detailViewActive || this.state.extraDetailViewActive) return;
         const pokemon = this.state.allPokemon[this.state.selectedPokemonIndex];
-        if (!pokemon) {
-            this.resetPokemonPreviewDisplay();
-            return;
-        }
+        if (!pokemon) return this.resetPokemonPreviewDisplay();
+
         const currentPokemonData = await getOrFetchPokemonData(pokemon.name, pokemon.url, this.state.detailedPokemonData);
-        if (!currentPokemonData) {
-            this.resetPokemonPreviewDisplay();
-            return;
-        }
-        updatePokemonImage(this.elements, currentPokemonData);
-        updateBackgroundColor(this.elements.pokemonDisplayArea, this.getPrimaryTypeName(currentPokemonData));
+        if (!currentPokemonData) return this.resetPokemonPreviewDisplay();
+
+        this._applyPreviewVisuals(currentPokemonData);
+        this.elements.extraDetailsBtn.disabled = true;
+    }
+
+    _applyPreviewVisuals(pokemonData) {
+        updatePokemonImage(this.elements, pokemonData);
+        updateBackgroundColor(this.elements.pokemonDisplayArea, this.getPrimaryTypeName(pokemonData));
         resetDetailFields(this.elements);
         resetExtraDetailFields(this.elements);
         this.stopPokemonCry();
-        this.elements.extraDetailsBtn.disabled = true;
     }
 
     resetPokemonPreviewDisplay() {
@@ -298,19 +296,26 @@ class Pokedex {
         const pokemonId = this.getSelectedPokemonId();
         if (!pokemonId) return this.handleDetailError('No Pokémon selected.');
 
-        const [pokemonData, speciesData] = await Promise.all([
+        const [pokemonData, speciesData] = await this._loadPokemonDetailData(pokemonId);
+        if (!pokemonData || !speciesData) return this.handleDetailError('Data loading Error.');
+
+        this._applyDetailVisuals(pokemonData);
+        updateDetailView(this.elements, pokemonData, speciesData, this.getPrimaryTypeName.bind(this), this.playPokemonCry.bind(this));
+        this.elements.extraDetailsBtn.disabled = false;
+    }
+
+    _loadPokemonDetailData(pokemonId) {
+        return Promise.all([
             loadPokemonDataForDetail(pokemonId, this.state.detailedPokemonData, this.state.allPokemon, this.state.selectedPokemonIndex),
             loadSpeciesDataForDetail(pokemonId, this.state.speciesDataCache)
         ]);
-        if (!pokemonData || !speciesData) return this.handleDetailError('Data loading Error.');
+    }
 
+    _applyDetailVisuals(pokemonData) {
         updatePokemonImage(this.elements, pokemonData);
         updateBackgroundColor(this.elements.pokemonDisplayArea, this.getPrimaryTypeName(pokemonData));
         updateBackgroundColor(this.elements.pokedexScreen, this.getPrimaryTypeName(pokemonData));
         updateBackgroundColor(this.elements.pokemonStats, this.getPrimaryTypeName(pokemonData));
-
-        updateDetailView(this.elements, pokemonData, speciesData, this.getPrimaryTypeName.bind(this), this.playPokemonCry.bind(this));
-        this.elements.extraDetailsBtn.disabled = false;
     }
 
     prepareDetailView() {
@@ -332,21 +337,21 @@ class Pokedex {
         if (!this.state.detailViewActive) await this.showPokemonDetail();
         if (!this.state.detailViewActive) return;
 
-        this.elements.pokedexDetailView.classList.add('hidden');
-        this.elements.pokedexExtraDetailsView.classList.remove('hidden');
-        this.state.extraDetailViewActive = true;
-
+        this._activateExtraDetailView();
         const pokemonId = this.getSelectedPokemonId();
         if (!pokemonId) return this.handleDetailError('No Pokémon selected.');
 
-        await this.loadAndDisplayExtraDetails(pokemonId);
+        await this._loadAndDisplayExtraDetails(pokemonId);
     }
 
-    async loadAndDisplayExtraDetails(pokemonId) {
-        const [pokemonData, speciesData] = await Promise.all([
-            loadPokemonDataForDetail(pokemonId, this.state.detailedPokemonData, this.state.allPokemon, this.state.selectedPokemonIndex),
-            loadSpeciesDataForDetail(pokemonId, this.state.speciesDataCache)
-        ]);
+    _activateExtraDetailView() {
+        this.elements.pokedexDetailView.classList.add('hidden');
+        this.elements.pokedexExtraDetailsView.classList.remove('hidden');
+        this.state.extraDetailViewActive = true;
+    }
+
+    async _loadAndDisplayExtraDetails(pokemonId) {
+        const [pokemonData, speciesData] = await this._loadPokemonDetailData(pokemonId);
         if (!pokemonData || !speciesData) return;
 
         const evolutionChainData = await loadEvolutionChainData(speciesData?.evolution_chain.url, this.state.evolutionChainCache);
@@ -357,30 +362,33 @@ class Pokedex {
         const pokemonId = this.getSelectedPokemonId();
         if (!pokemonId) return this.handleDetailError('No Pokémon selected for detail update.');
 
-        const [pokemonData, speciesData] = await Promise.all([
-            loadPokemonDataForDetail(pokemonId, this.state.detailedPokemonData, this.state.allPokemon, this.state.selectedPokemonIndex),
-            loadSpeciesDataForDetail(pokemonId, this.state.speciesDataCache)
-        ]);
+        const [pokemonData, speciesData] = await this._loadPokemonDetailData(pokemonId);
         if (!pokemonData || !speciesData) return this.handleDetailError('Data loading Error during detail update.');
 
-        updatePokemonImage(this.elements, pokemonData);
-        updateBackgroundColor(this.elements.pokemonDisplayArea, this.getPrimaryTypeName(pokemonData));
-        updateBackgroundColor(this.elements.pokedexScreen, this.getPrimaryTypeName(pokemonData));
-        updateBackgroundColor(this.elements.pokemonStats, this.getPrimaryTypeName(pokemonData));
+        this._applyDetailVisuals(pokemonData);
+        this._playPokemonCryOnUpdate(pokemonData);
+        this._renderActiveDetailView(pokemonData, speciesData);
+        this.elements.extraDetailsBtn.disabled = false;
+    }
 
-        // Play the Pokémon cry here, as a new Pokémon is being loaded/displayed in detail view
+    _playPokemonCryOnUpdate(pokemonData) {
         const pokemonName = pokemonData?.name;
         if (pokemonName) {
             this.playPokemonCry(pokemonName);
         }
+    }
 
+    _renderActiveDetailView(pokemonData, speciesData) {
         if (this.state.detailViewActive && !this.state.extraDetailViewActive) {
             updateDetailView(this.elements, pokemonData, speciesData, this.getPrimaryTypeName.bind(this), this.playPokemonCry.bind(this));
         } else if (this.state.extraDetailViewActive) {
-            const evolutionChainData = await loadEvolutionChainData(speciesData?.evolution_chain.url, this.state.evolutionChainCache);
-            updateExtraDetailView(this.elements, pokemonData, speciesData, evolutionChainData, this.getPrimaryTypeName.bind(this));
+            this._updateExtraDetailViewWithEvolution(pokemonData, speciesData);
         }
-        this.elements.extraDetailsBtn.disabled = false;
+    }
+
+    async _updateExtraDetailViewWithEvolution(pokemonData, speciesData) {
+        const evolutionChainData = await loadEvolutionChainData(speciesData?.evolution_chain.url, this.state.evolutionChainCache);
+        updateExtraDetailView(this.elements, pokemonData, speciesData, evolutionChainData, this.getPrimaryTypeName.bind(this));
     }
 
     getSelectedPokemonId() {
@@ -421,24 +429,7 @@ class Pokedex {
         this.elements.pokedexExtraDetailsView.classList.add('hidden');
         this.elements.pokedexDetailView.classList.remove('hidden');
         resetExtraDetailFields(this.elements);
-        // Statt nur restoreDetailViewBackground, rufen wir updateActiveDetailView auf,
-        // um die Detailansicht komplett mit den Daten des aktuellen Pokemons neu zu rendern.
-        // Das stellt sicher, dass alle Felder und Hintergründe korrekt gesetzt werden.
         this.updateActiveDetailView();
-    }
-
-    restoreDetailViewBackground() {
-        // Diese Methode wird jetzt weniger kritisch, da updateActiveDetailView alles abdeckt.
-        // Kann aber als Fallback oder für spezifische Reset-Szenarien beibehalten werden.
-        const currentPokemonData = this.state.detailedPokemonData[this.state.allPokemon[this.state.selectedPokemonIndex]?.name];
-        if (currentPokemonData) {
-            const primaryType = this.getPrimaryTypeName(currentPokemonData);
-            updateBackgroundColor(this.elements.pokemonDisplayArea, primaryType);
-            updateBackgroundColor(this.elements.pokedexScreen, primaryType);
-            updateBackgroundColor(this.elements.pokemonStats, primaryType);
-        } else {
-            resetBackgrounds(this.elements);
-        }
     }
 
     stopPokemonCry() {
@@ -449,16 +440,31 @@ class Pokedex {
     handlePokemonListClick(event) {
         const listItem = event.target.closest('li');
         if (!listItem || !this.state.pokedexIsOpen) return;
+
         const pokemonIdClicked = parseInt(listItem.dataset.id);
         const originalIndex = pokemonIdClicked - 1;
 
-        if (originalIndex !== -1 && this.state.selectedPokemonIndex !== originalIndex) {
-            this.state.selectedPokemonIndex = originalIndex;
-            this.displayPokemonList();
-            this.hidePokemonDetail();
-        } else if (this.state.selectedPokemonIndex === originalIndex && !this.state.detailViewActive && !this.state.extraDetailViewActive) {
+        if (this._isNewPokemonSelected(originalIndex)) {
+            this._selectAndHideDetail(originalIndex);
+        } else if (this._isSamePokemonClickedAndNoDetailView(originalIndex)) {
             this.showPokemonDetail();
         }
+    }
+
+    _isNewPokemonSelected(originalIndex) {
+        return originalIndex !== -1 && this.state.selectedPokemonIndex !== originalIndex;
+    }
+
+    _selectAndHideDetail(originalIndex) {
+        this.state.selectedPokemonIndex = originalIndex;
+        this.displayPokemonList();
+        this.hidePokemonDetail();
+    }
+
+    _isSamePokemonClickedAndNoDetailView(originalIndex) {
+        return this.state.selectedPokemonIndex === originalIndex &&
+            !this.state.detailViewActive &&
+            !this.state.extraDetailViewActive;
     }
 
     handleSearchInput(event) {
@@ -482,35 +488,38 @@ class Pokedex {
         const filteredPokemon = this.getFilteredPokemon();
         if (filteredPokemon.length === 0) return;
 
-        let currentFilteredIndex = this.getCurrentFilteredIndex(filteredPokemon);
-        const newFilteredIndex = this.calculateNewFilteredIndex(currentFilteredIndex, offset, filteredPokemon.length);
+        this._updatePokemonSelection(filteredPokemon, offset);
+    }
+
+    _updatePokemonSelection(filteredPokemon, offset) {
+        let currentFilteredIndex = this._getCurrentFilteredIndex(filteredPokemon);
+        const newFilteredIndex = this._calculateNewFilteredIndex(currentFilteredIndex, offset, filteredPokemon.length);
 
         const newSelectedPokemon = filteredPokemon[newFilteredIndex];
         const currentSelectedPokemon = this.state.allPokemon[this.state.selectedPokemonIndex];
 
         if (newSelectedPokemon.name !== currentSelectedPokemon?.name) {
-            this.updateSelectedPokemonAndDisplay(newSelectedPokemon);
-
+            this._updateSelectedPokemonAndDisplay(newSelectedPokemon);
             if (this.state.detailViewActive || this.state.extraDetailViewActive) {
                 this.updateActiveDetailView();
             }
         }
     }
 
-    getCurrentFilteredIndex(filteredPokemon) {
+    _getCurrentFilteredIndex(filteredPokemon) {
         const currentSelectedName = this.state.allPokemon[this.state.selectedPokemonIndex]?.name;
         let currentFilteredIndex = filteredPokemon.findIndex(p => p.name === currentSelectedName);
         return currentFilteredIndex === -1 ? 0 : currentFilteredIndex;
     }
 
-    calculateNewFilteredIndex(currentIndex, offset, totalLength) {
+    _calculateNewFilteredIndex(currentIndex, offset, totalLength) {
         let newIndex = currentIndex + offset;
         if (newIndex < 0) newIndex = 0;
         else if (newIndex >= totalLength) newIndex = totalLength - 1;
         return newIndex;
     }
 
-    updateSelectedPokemonAndDisplay(newPokemon) {
+    _updateSelectedPokemonAndDisplay(newPokemon) {
         const newOriginalIndex = this.state.allPokemon.findIndex(p => p.name === newPokemon.name);
         if (newOriginalIndex !== -1) {
             this.state.selectedPokemonIndex = newOriginalIndex;
@@ -521,11 +530,15 @@ class Pokedex {
     handleAButtonPress() {
         if (!this.state.pokedexIsOpen) return;
         if (this.state.detailViewActive || this.state.extraDetailViewActive) {
-            const pokemonName = this.state.allPokemon[this.state.selectedPokemonIndex]?.name;
-            if (pokemonName) this.playPokemonCry(pokemonName);
+            this._playCurrentPokemonCry();
         } else {
             this.showPokemonDetail();
         }
+    }
+
+    _playCurrentPokemonCry() {
+        const pokemonName = this.state.allPokemon[this.state.selectedPokemonIndex]?.name;
+        if (pokemonName) this.playPokemonCry(pokemonName);
     }
 
     handleBButtonPress() {
@@ -542,20 +555,20 @@ class Pokedex {
     handleKeyboardInput(event) {
         if (event.target === this.elements.pokemonSearch) return;
         if (this.state.pokedexIsOpen) {
-            this.handleOpenPokedexKey(event);
+            this._handleOpenPokedexKey(event);
         } else {
-            this.handleClosedPokedexKey(event);
+            this._handleClosedPokedexKey(event);
         }
     }
 
-    handleClosedPokedexKey(event) {
+    _handleClosedPokedexKey(event) {
         if (event.key === ' ') {
             event.preventDefault();
             this.openPokedex();
         }
     }
 
-    handleOpenPokedexKey(event) {
+    _handleOpenPokedexKey(event) {
         event.preventDefault();
         const keyActions = {
             'ArrowUp': () => this.handleDpadMovement(-1),
