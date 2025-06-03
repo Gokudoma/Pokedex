@@ -21,7 +21,6 @@ body {
     perspective: 1000px; /* Ermöglicht 3D-Transformationen */
 }
 
-
 .pokedex-closed {
     width: 100%;
     height: 100%;

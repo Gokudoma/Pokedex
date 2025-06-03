@@ -1,6 +1,6 @@
 import {
     POKEAPI_BASE_URL, MAX_POKEMON_ID,
-    typeColors, detailBgColors,
+    detailBgColors,
     capitalizeFirstLetter, createTypeBadge,
     createStatItem, findDescription,
     createDetailSection, createMovesList, createEvolutionLine
@@ -11,7 +11,7 @@ class Pokedex {
         this.initElements();
         this.initState();
         this.initEventListeners();
-        this.setInitialState(); // Dieser Aufruf wird beim Start ausgeführt
+        this.setInitialState();
     }
 
     initElements() {
@@ -79,7 +79,7 @@ class Pokedex {
         this.elements.pokedexOpen.classList.add('hidden');
         this.elements.pokedexOpen.classList.remove('opened');
         this.elements.pokedexDetailView.classList.add('hidden');
-        this.elements.pokedexExtraDetailsView.classList.add('hidden'); // <-- Hinzugefügt
+        this.elements.pokedexExtraDetailsView.classList.add('hidden');
         this.elements.extraDetailsBtn.disabled = true;
     }
 
@@ -122,6 +122,10 @@ class Pokedex {
         this.state.pokedexIsOpen = true;
         this.resetPokedexVisibility();
         this.animatePokedexOpen();
+        this.loadPokemonContent();
+    }
+
+    loadPokemonContent() {
         if (this.state.allPokemon.length === 0) {
             this.fetchPokemonList();
         } else {
@@ -334,19 +338,24 @@ class Pokedex {
     }
 
     async showPokemonDetail() {
-        this.hideListAndSearch();
-        this.hideExtraDetailAndShowDetail();
-        this.state.detailViewActive = true;
-        this.state.extraDetailViewActive = false;
-        this.elements.extraDetailsBtn.disabled = false;
+        this.prepareDetailView();
         const pokemonId = this.getSelectedPokemonId();
         if (!pokemonId) return this.handleDetailError('Kein Pokémon ausgewählt.');
+
         const [pokemonData, speciesData] = await Promise.all([
             this.loadPokemonDataForDetail(pokemonId),
             this.loadSpeciesDataForDetail(pokemonId)
         ]);
         if (!pokemonData || !speciesData) return this.handleDetailError('Daten nicht geladen.');
         this.updateDetailView(pokemonData, speciesData);
+    }
+
+    prepareDetailView() {
+        this.hideListAndSearch();
+        this.hideExtraDetailAndShowDetail();
+        this.state.detailViewActive = true;
+        this.state.extraDetailViewActive = false;
+        this.elements.extraDetailsBtn.disabled = false;
     }
 
     hideListAndSearch() {
@@ -394,36 +403,19 @@ class Pokedex {
 
     getSelectedPokemonId() {
         const pokemon = this.state.allPokemon[this.state.selectedPokemonIndex];
-        if (!pokemon) {
-            console.warn('Kein Pokémon an diesem Index ausgewählt.');
-            return null;
-        }
-        return pokemon.url.split('/').slice(-2, -1)[0];
+        return pokemon ? pokemon.url.split('/').slice(-2, -1)[0] : null;
     }
 
     async loadPokemonDataForDetail(pokemonId) {
         const pokemonName = this.state.allPokemon[this.state.selectedPokemonIndex]?.name;
-        if (pokemonName && this.state.detailedPokemonData[pokemonName]) return this.state.detailedPokemonData[pokemonName];
-        try {
-            const data = await this.fetchData(`${POKEAPI_BASE_URL}pokemon/${pokemonId}/`);
-            if (pokemonName) this.state.detailedPokemonData[pokemonName] = data;
-            return data;
-        } catch (error) {
-            this.handleFetchError('Fehler beim Laden der Pokémon-Details.', error, true);
-            return null;
+        if (pokemonName && this.state.detailedPokemonData[pokemonName]) {
+            return this.state.detailedPokemonData[pokemonName];
         }
+        return await this.fetchAndCacheData(pokemonId, 'pokemon', 'detailedPokemonData');
     }
 
     async loadSpeciesDataForDetail(pokemonId) {
-        if (this.state.speciesDataCache[pokemonId]) return this.state.speciesDataCache[pokemonId];
-        try {
-            const data = await this.fetchData(`${POKEAPI_BASE_URL}pokemon-species/${pokemonId}/`);
-            this.state.speciesDataCache[pokemonId] = data;
-            return data;
-        } catch (error) {
-            this.handleFetchError('Fehler beim Laden der Pokémon-Beschreibung.', error, true);
-            return null;
-        }
+        return await this.fetchAndCacheData(pokemonId, 'pokemon-species', 'speciesDataCache');
     }
 
     async loadEvolutionChainData(evolutionChainUrl) {
@@ -435,6 +427,23 @@ class Pokedex {
             return data;
         } catch (error) {
             this.handleFetchError('Fehler beim Laden der Evolutionskette.', error, true);
+            return null;
+        }
+    }
+
+    async fetchAndCacheData(id, endpoint, cacheName) {
+        try {
+            const url = `${POKEAPI_BASE_URL}${endpoint}/${id}/`;
+            const data = await this.fetchData(url);
+            if (this.state[cacheName]) {
+                this.state[cacheName][id] = data;
+            } else if (endpoint === 'pokemon') {
+                const pokemonName = this.state.allPokemon[this.state.selectedPokemonIndex]?.name;
+                if (pokemonName) this.state.detailedPokemonData[pokemonName] = data;
+            }
+            return data;
+        } catch (error) {
+            this.handleFetchError(`Fehler beim Laden von ${endpoint} (ID: ${id}).`, error, true);
             return null;
         }
     }
@@ -474,12 +483,13 @@ class Pokedex {
     }
 
     async addEvolutionInfo(evolutionChainData) {
-        this.elements.pokemonEvolution.appendChild(createDetailSection('Entwicklung:', ''));
+        const evolutionSection = createDetailSection('Entwicklung:', '');
+        this.elements.pokemonEvolution.appendChild(evolutionSection);
         if (evolutionChainData) {
             const evolutionLineHtml = await createEvolutionLine(evolutionChainData);
-            this.elements.pokemonEvolution.appendChild(evolutionLineHtml);
+            evolutionSection.appendChild(evolutionLineHtml);
         } else {
-            this.elements.pokemonEvolution.appendChild(document.createTextNode('Keine Evolutionsdaten verfügbar.'));
+            evolutionSection.appendChild(document.createTextNode('Keine Evolutionsdaten verfügbar.'));
         }
     }
 
@@ -648,6 +658,7 @@ class Pokedex {
         if (!this.state.pokedexIsOpen || this.state.detailViewActive || this.state.extraDetailViewActive) return;
         const filteredPokemon = this.getFilteredPokemon();
         if (filteredPokemon.length === 0) return;
+        
         let currentFilteredIndex = this.getCurrentFilteredIndex(filteredPokemon);
         const newFilteredIndex = this.calculateNewFilteredIndex(currentFilteredIndex, offset, filteredPokemon.length);
         this.updateSelectedPokemonAndDisplay(filteredPokemon[newFilteredIndex]);
@@ -682,7 +693,8 @@ class Pokedex {
     handleAButtonPress() {
         if (!this.state.pokedexIsOpen) return;
         if (this.state.detailViewActive || this.state.extraDetailViewActive) {
-            this.playPokemonCry(this.state.allPokemon[this.state.selectedPokemonIndex].name);
+            const pokemonName = this.state.allPokemon[this.state.selectedPokemonIndex]?.name;
+            if (pokemonName) this.playPokemonCry(pokemonName);
         } else {
             this.showPokemonDetail();
         }
@@ -720,19 +732,28 @@ class Pokedex {
     }
 
     handleOpenPokedexKey(event) {
-        switch (event.key) {
-            case 'ArrowUp': event.preventDefault(); this.handleDpadMovement(-1); break;
-            case 'ArrowDown': event.preventDefault(); this.handleDpadMovement(1); break;
-            case 'ArrowLeft': event.preventDefault(); this.handleDpadMovement(-10); break;
-            case 'ArrowRight': event.preventDefault(); this.handleDpadMovement(10); break;
-            case 'Enter': case 'a': case 'A': event.preventDefault(); this.handleAButtonPress(); break;
-            case 'Escape': case 'b': case 'B': event.preventDefault(); this.handleBButtonPress(); break;
-            case 'd': case 'D':
-                if (this.state.detailViewActive && !this.state.extraDetailViewActive) {
-                    event.preventDefault();
-                    this.showExtraDetailView();
-                }
-                break;
+        event.preventDefault();
+        const keyActions = {
+            'ArrowUp': () => this.handleDpadMovement(-1),
+            'ArrowDown': () => this.handleDpadMovement(1),
+            'ArrowLeft': () => this.handleDpadMovement(-10),
+            'ArrowRight': () => this.handleDpadMovement(10),
+            'Enter': () => this.handleAButtonPress(),
+            'a': () => this.handleAButtonPress(),
+            'A': () => this.handleAButtonPress(),
+            'Escape': () => this.handleBButtonPress(),
+            'b': () => this.handleBButtonPress(),
+            'B': () => this.handleBButtonPress(),
+            'd': () => this.handleExtraDetailKey(),
+            'D': () => this.handleExtraDetailKey(),
+        };
+        const action = keyActions[event.key];
+        if (action) action();
+    }
+
+    handleExtraDetailKey() {
+        if (this.state.detailViewActive && !this.state.extraDetailViewActive) {
+            this.showExtraDetailView();
         }
     }
 
