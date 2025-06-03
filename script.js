@@ -206,12 +206,12 @@ class Pokedex {
 
     async fetchPokemonList() {
         try {
-            this.elements.pokemonList.innerHTML = '<li>Lade Pokémon...</li>';
+            this.elements.pokemonList.innerHTML = '<li>Loading Pokémon...</li>';
             const response = await fetchData(`${POKEAPI_BASE_URL}pokemon?limit=${MAX_POKEMON_ID}`);
             this.state.allPokemon = response.results;
             this.displayPokemonList();
         } catch (error) {
-            this.handleFetchError('Fehler beim Abrufen der Pokémon-Liste.', error);
+            this.handleFetchError('Error by loading Pokémon-list.', error);
         }
     }
 
@@ -236,10 +236,10 @@ class Pokedex {
 
     // Diese Methode bleibt in der Pokedex-Klasse, da sie den Zustand (state) des Pokedex direkt manipuliert.
     handleNoSearchResults() {
-        this.elements.pokemonList.innerHTML = '<li>Keine Ergebnisse gefunden.</li>';
+        this.elements.pokemonList.innerHTML = '<li>No results.</li>';
         resetPokemonDisplayBackground(this.elements);
         this.elements.pokemonImage.src = '';
-        this.elements.pokemonImage.alt = 'Kein Pokémon gefunden';
+        this.elements.pokemonImage.alt = 'No Pokémon found';
         resetDetailFields(this.elements);
         resetExtraDetailFields(this.elements);
         this.stopPokemonCry();
@@ -299,13 +299,13 @@ class Pokedex {
     async showPokemonDetail() {
         this.prepareDetailView();
         const pokemonId = this.getSelectedPokemonId();
-        if (!pokemonId) return this.handleDetailError('Kein Pokémon ausgewählt.');
+        if (!pokemonId) return this.handleDetailError('No Pokémon selected.');
 
         const [pokemonData, speciesData] = await Promise.all([
             loadPokemonDataForDetail(pokemonId, this.state.detailedPokemonData, this.state.allPokemon, this.state.selectedPokemonIndex),
             loadSpeciesDataForDetail(pokemonId, this.state.speciesDataCache)
         ]);
-        if (!pokemonData || !speciesData) return this.handleDetailError('Daten nicht geladen.');
+        if (!pokemonData || !speciesData) return this.handleDetailError('Data loading Error.');
         updateDetailView(this.elements, pokemonData, speciesData, this.getPrimaryTypeName.bind(this), this.playPokemonCry.bind(this));
     }
 
@@ -334,7 +334,7 @@ class Pokedex {
         this.state.extraDetailViewActive = true;
 
         const pokemonId = this.getSelectedPokemonId();
-        if (!pokemonId) return this.handleDetailError('Kein Pokémon ausgewählt.');
+        if (!pokemonId) return this.handleDetailError('No Pokémon selected.');
 
         await this.loadAndDisplayExtraDetails(pokemonId);
     }
@@ -362,7 +362,7 @@ class Pokedex {
     playPokemonCry(pokemonName) {
         this.elements.pokemonCry.src = `https://play.pokemonshowdown.com/audio/cries/${pokemonName.toLowerCase()}.mp3`;
         this.elements.pokemonCry.volume = this.state.volume;
-        this.elements.pokemonCry.play().catch(e => console.warn('Fehler beim Abspielen des Rufs:', e));
+        this.elements.pokemonCry.play().catch(e => console.warn('PokemonCry Error:', e));
     }
 
     hidePokemonDetail() {
@@ -534,9 +534,9 @@ class Pokedex {
 
     handleFetchError(message, error, shouldHideDetail = false) {
         console.error(message, error);
-        this.elements.pokemonList.innerHTML = `<li style="color: red;">Fehler: ${message} Bitte versuchen Sie es später erneut.</li>`;
+        this.elements.pokemonList.innerHTML = `<li style="color: red;">Error: ${message} please try again later.</li>`;
         this.elements.pokemonImage.src = '';
-        this.elements.pokemonImage.alt = 'Fehler beim Laden';
+        this.elements.pokemonImage.alt = 'Loading Error';
         resetDetailFields(this.elements);
         resetExtraDetailFields(this.elements);
         resetBackgrounds(this.elements);

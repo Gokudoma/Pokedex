@@ -12,7 +12,7 @@ import {
 export function updatePokemonImage(elements, pokemonData) {
     const imageUrl = pokemonData.sprites.other?.['official-artwork']?.front_default || pokemonData.sprites.front_default;
     elements.pokemonImage.src = imageUrl || '';
-    elements.pokemonImage.alt = imageUrl ? capitalizeFirstLetter(pokemonData.name) : 'Kein Bild verfügbar';
+    elements.pokemonImage.alt = imageUrl ? capitalizeFirstLetter(pokemonData.name) : 'No image available';
 }
 
 export function updateBackgroundColor(element, primaryType) {
@@ -24,7 +24,7 @@ export function resetDetailFields(elements) {
     elements.pokemonName.textContent = '';
     elements.pokemonId.textContent = '';
     elements.pokemonTypes.innerHTML = '';
-    elements.pokemonDescription.textContent = 'Wähle ein Pokémon für Details...';
+    elements.pokemonDescription.textContent = 'Select a Pokémon for details...';
     elements.pokemonStats.innerHTML = '';
 }
 
@@ -116,12 +116,12 @@ export async function updateExtraDetailView(elements, pokemonData, speciesData, 
 
     const height = `${(pokemonData.height / 10).toFixed(1)} m`;
     const weight = `${(pokemonData.weight / 10).toFixed(1)} kg`;
-    elements.pokemonHeightWeight.appendChild(createDetailSection('Größe:', height));
-    elements.pokemonHeightWeight.appendChild(createDetailSection('Gewicht:', weight));
+    elements.pokemonHeightWeight.appendChild(createDetailSection('Height:', height));
+    elements.pokemonHeightWeight.appendChild(createDetailSection('Weight:', weight));
 
-    elements.pokemonMoves.appendChild(createDetailSection('Attacken:', createMovesList(pokemonData.moves)));
+    elements.pokemonMoves.appendChild(createDetailSection('Moves:', createMovesList(pokemonData.moves)));
 
-    const evolutionSection = createDetailSection('Entwicklung:', '');
+    const evolutionSection = createDetailSection('Evolution:', '');
     elements.pokemonEvolution.appendChild(evolutionSection);
     if (evolutionChainData) {
         const evolutionLineHtml = await createEvolutionLine(evolutionChainData);

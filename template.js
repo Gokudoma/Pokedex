@@ -50,9 +50,8 @@ export const createStatItem = (name, value) => {
 };
 
 export const findDescription = (entries) => {
-    return entries.find(entry => entry.language.name === 'de') ||
-           entries.find(entry => entry.language.name === 'en' &&
-             ['red', 'blue', 'yellow'].includes(entry.version.name)) ||
+    return entries.find(entry => entry.language.name === 'en' &&
+                        ['red', 'blue', 'yellow'].includes(entry.version.name)) ||
            entries.find(entry => entry.language.name === 'en');
 };
 
@@ -76,7 +75,7 @@ export const createDetailSection = (titleText, contentHtml) => {
 export const createMovesList = (moves) => {
     const movesList = document.createElement('div');
     if (moves.length === 0) {
-        movesList.textContent = 'Keine Attacken bekannt.';
+        movesList.textContent = 'No moves known.';
         return movesList;
     }
 
