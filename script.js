@@ -122,7 +122,6 @@ class Pokedex {
         this.elements.pokemonCry.volume = this.state.volume;
     }
 
-    // Nutzt die ausgelagerten Reset-Funktionen
     resetPokedexVisuals() {
         resetBackgrounds(this.elements);
         resetDetailFields(this.elements);
@@ -215,7 +214,6 @@ class Pokedex {
         }
     }
 
-    // Diese Methode ruft nun die ausgelagerte `displayPokemonList` Funktion auf und übergibt benötigte "Pokedex"-Methoden.
     displayPokemonList() {
         displayPokemonList(
             this.elements,
@@ -234,7 +232,6 @@ class Pokedex {
         );
     }
 
-    // Diese Methode bleibt in der Pokedex-Klasse, da sie den Zustand (state) des Pokedex direkt manipuliert.
     handleNoSearchResults() {
         this.elements.pokemonList.innerHTML = '<li>No results.</li>';
         resetPokemonDisplayBackground(this.elements);
@@ -306,10 +303,16 @@ class Pokedex {
             loadSpeciesDataForDetail(pokemonId, this.state.speciesDataCache)
         ]);
         if (!pokemonData || !speciesData) return this.handleDetailError('Data loading Error.');
+
+        updatePokemonImage(this.elements, pokemonData);
+        updateBackgroundColor(this.elements.pokemonDisplayArea, this.getPrimaryTypeName(pokemonData));
+        updateBackgroundColor(this.elements.pokedexScreen, this.getPrimaryTypeName(pokemonData));
+        updateBackgroundColor(this.elements.pokemonStats, this.getPrimaryTypeName(pokemonData));
+
         updateDetailView(this.elements, pokemonData, speciesData, this.getPrimaryTypeName.bind(this), this.playPokemonCry.bind(this));
+        this.elements.extraDetailsBtn.disabled = false;
     }
 
-    // prepareDetailView nutzt jetzt die ausgelagerten show/hide-Funktionen
     prepareDetailView() {
         hideListAndSearch(this.elements);
         hideExtraDetailAndShowDetail(this.elements);
@@ -350,6 +353,36 @@ class Pokedex {
         updateExtraDetailView(this.elements, pokemonData, speciesData, evolutionChainData, this.getPrimaryTypeName.bind(this));
     }
 
+    async updateActiveDetailView() {
+        const pokemonId = this.getSelectedPokemonId();
+        if (!pokemonId) return this.handleDetailError('No Pokémon selected for detail update.');
+
+        const [pokemonData, speciesData] = await Promise.all([
+            loadPokemonDataForDetail(pokemonId, this.state.detailedPokemonData, this.state.allPokemon, this.state.selectedPokemonIndex),
+            loadSpeciesDataForDetail(pokemonId, this.state.speciesDataCache)
+        ]);
+        if (!pokemonData || !speciesData) return this.handleDetailError('Data loading Error during detail update.');
+
+        updatePokemonImage(this.elements, pokemonData);
+        updateBackgroundColor(this.elements.pokemonDisplayArea, this.getPrimaryTypeName(pokemonData));
+        updateBackgroundColor(this.elements.pokedexScreen, this.getPrimaryTypeName(pokemonData));
+        updateBackgroundColor(this.elements.pokemonStats, this.getPrimaryTypeName(pokemonData));
+
+        // Play the Pokémon cry here, as a new Pokémon is being loaded/displayed in detail view
+        const pokemonName = pokemonData?.name;
+        if (pokemonName) {
+            this.playPokemonCry(pokemonName);
+        }
+
+        if (this.state.detailViewActive && !this.state.extraDetailViewActive) {
+            updateDetailView(this.elements, pokemonData, speciesData, this.getPrimaryTypeName.bind(this), this.playPokemonCry.bind(this));
+        } else if (this.state.extraDetailViewActive) {
+            const evolutionChainData = await loadEvolutionChainData(speciesData?.evolution_chain.url, this.state.evolutionChainCache);
+            updateExtraDetailView(this.elements, pokemonData, speciesData, evolutionChainData, this.getPrimaryTypeName.bind(this));
+        }
+        this.elements.extraDetailsBtn.disabled = false;
+    }
+
     getSelectedPokemonId() {
         const pokemon = this.state.allPokemon[this.state.selectedPokemonIndex];
         return pokemon ? pokemon.url.split('/').slice(-2, -1)[0] : null;
@@ -388,10 +421,15 @@ class Pokedex {
         this.elements.pokedexExtraDetailsView.classList.add('hidden');
         this.elements.pokedexDetailView.classList.remove('hidden');
         resetExtraDetailFields(this.elements);
-        this.restoreDetailViewBackground();
+        // Statt nur restoreDetailViewBackground, rufen wir updateActiveDetailView auf,
+        // um die Detailansicht komplett mit den Daten des aktuellen Pokemons neu zu rendern.
+        // Das stellt sicher, dass alle Felder und Hintergründe korrekt gesetzt werden.
+        this.updateActiveDetailView();
     }
 
     restoreDetailViewBackground() {
+        // Diese Methode wird jetzt weniger kritisch, da updateActiveDetailView alles abdeckt.
+        // Kann aber als Fallback oder für spezifische Reset-Szenarien beibehalten werden.
         const currentPokemonData = this.state.detailedPokemonData[this.state.allPokemon[this.state.selectedPokemonIndex]?.name];
         if (currentPokemonData) {
             const primaryType = this.getPrimaryTypeName(currentPokemonData);
@@ -439,13 +477,24 @@ class Pokedex {
     }
 
     handleDpadMovement(offset) {
-        if (!this.state.pokedexIsOpen || this.state.detailViewActive || this.state.extraDetailViewActive) return;
+        if (!this.state.pokedexIsOpen) return;
+
         const filteredPokemon = this.getFilteredPokemon();
         if (filteredPokemon.length === 0) return;
 
         let currentFilteredIndex = this.getCurrentFilteredIndex(filteredPokemon);
         const newFilteredIndex = this.calculateNewFilteredIndex(currentFilteredIndex, offset, filteredPokemon.length);
-        this.updateSelectedPokemonAndDisplay(filteredPokemon[newFilteredIndex]);
+
+        const newSelectedPokemon = filteredPokemon[newFilteredIndex];
+        const currentSelectedPokemon = this.state.allPokemon[this.state.selectedPokemonIndex];
+
+        if (newSelectedPokemon.name !== currentSelectedPokemon?.name) {
+            this.updateSelectedPokemonAndDisplay(newSelectedPokemon);
+
+            if (this.state.detailViewActive || this.state.extraDetailViewActive) {
+                this.updateActiveDetailView();
+            }
+        }
     }
 
     getCurrentFilteredIndex(filteredPokemon) {
