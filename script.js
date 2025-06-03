@@ -1,9 +1,40 @@
 import {
-    POKEAPI_BASE_URL, MAX_POKEMON_ID,
-    detailBgColors,
-    capitalizeFirstLetter, createTypeBadge,
-    createStatItem, findDescription,
-    createDetailSection, createMovesList, createEvolutionLine
+    POKEAPI_BASE_URL,
+    MAX_POKEMON_ID
+} from './template.js';
+
+import {
+    fetchData,
+    getOrFetchPokemonData,
+    loadPokemonDataForDetail,
+    loadSpeciesDataForDetail,
+    loadEvolutionChainData,
+    fetchAndCacheData
+} from './dataHandler.js';
+
+import {
+    setupPokedexEventListeners
+} from './eventHandlers.js';
+
+import {
+    updatePokemonImage,
+    updateBackgroundColor,
+    resetDetailFields,
+    resetExtraDetailFields,
+    displayPokemonList,
+    highlightSelectedListItemAndScroll,
+    updateDetailView,
+    applyBackgroundColors,
+    updateExtraDetailView,
+    resetBackgrounds,
+    resetPokemonDisplayBackground,
+    showListAndSearch,
+    hideListAndSearch,
+    hideExtraDetailAndShowDetail
+} from './uiRenderer.js';
+
+import {
+    capitalizeFirstLetter
 } from './template.js';
 
 class Pokedex {
@@ -91,26 +122,18 @@ class Pokedex {
         this.elements.pokemonCry.volume = this.state.volume;
     }
 
+    // Nutzt die ausgelagerten Reset-Funktionen
     resetPokedexVisuals() {
-        this.resetBackgrounds();
-        this.resetDetailFields();
-        this.resetExtraDetailFields();
+        resetBackgrounds(this.elements);
+        resetDetailFields(this.elements);
+        resetExtraDetailFields(this.elements);
         this.elements.pokemonImage.src = '';
         this.elements.pokemonImage.alt = '';
         this.stopPokemonCry();
     }
 
     initEventListeners() {
-        this.elements.openPokedexBtn.addEventListener('click', () => this.togglePokedex());
-        this.elements.backButton.addEventListener('click', () => this.hidePokemonDetail());
-        this.elements.backButtonExtra.addEventListener('click', () => this.hideExtraDetailView());
-        this.elements.pokemonList.addEventListener('click', (event) => this.handlePokemonListClick(event));
-        this.elements.pokemonSearch.addEventListener('input', (event) => this.handleSearchInput(event));
-        this.elements.volumeRange.addEventListener('input', (event) => this.handleVolumeChange(event));
-        this.elements.extraDetailsBtn.addEventListener('click', () => this.showExtraDetailView());
-        this.setupDpadListeners();
-        this.setupButtonListeners();
-        this.setupKeyboardListeners();
+        setupPokedexEventListeners(this);
     }
 
     togglePokedex() {
@@ -184,7 +207,7 @@ class Pokedex {
     async fetchPokemonList() {
         try {
             this.elements.pokemonList.innerHTML = '<li>Lade Pokémon...</li>';
-            const response = await this.fetchData(`${POKEAPI_BASE_URL}pokemon?limit=${MAX_POKEMON_ID}`);
+            const response = await fetchData(`${POKEAPI_BASE_URL}pokemon?limit=${MAX_POKEMON_ID}`);
             this.state.allPokemon = response.results;
             this.displayPokemonList();
         } catch (error) {
@@ -192,21 +215,17 @@ class Pokedex {
         }
     }
 
-    async fetchData(url) {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP-Fehler! Status: ${response.status}`);
-        return await response.json();
-    }
-
+    // Diese Methode ruft nun die ausgelagerte `displayPokemonList` Funktion auf und übergibt benötigte "Pokedex"-Methoden.
     displayPokemonList() {
-        this.elements.pokemonList.innerHTML = '';
-        const filtered = this.getFilteredPokemon();
-        if (filtered.length === 0) {
-            this.handleNoSearchResults();
-            return;
-        }
-        this.renderPokemonListItems(filtered);
-        this.selectInitialListItem(filtered);
+        displayPokemonList(
+            this.elements,
+            this.state,
+            this.getFilteredPokemon.bind(this),
+            this.createPokemonListItem.bind(this),
+            this.highlightSelectedListItem.bind(this),
+            this.handleNoSearchResults.bind(this),
+            this.updatePokemonPreview.bind(this)
+        );
     }
 
     getFilteredPokemon() {
@@ -215,31 +234,16 @@ class Pokedex {
         );
     }
 
+    // Diese Methode bleibt in der Pokedex-Klasse, da sie den Zustand (state) des Pokedex direkt manipuliert.
     handleNoSearchResults() {
         this.elements.pokemonList.innerHTML = '<li>Keine Ergebnisse gefunden.</li>';
-        this.resetPokemonDisplayBackground();
+        resetPokemonDisplayBackground(this.elements);
         this.elements.pokemonImage.src = '';
         this.elements.pokemonImage.alt = 'Kein Pokémon gefunden';
-        this.resetDetailFields();
-        this.resetExtraDetailFields();
+        resetDetailFields(this.elements);
+        resetExtraDetailFields(this.elements);
         this.stopPokemonCry();
         this.elements.extraDetailsBtn.disabled = true;
-    }
-
-    renderPokemonListItems(pokemonList) {
-        pokemonList.forEach(pokemon =>
-            this.elements.pokemonList.appendChild(this.createPokemonListItem(pokemon))
-        );
-    }
-
-    selectInitialListItem(filteredPokemon) {
-        const currentSelectedName = this.state.allPokemon[this.state.selectedPokemonIndex]?.name;
-        let newIndex = filteredPokemon.findIndex(p => p.name === currentSelectedName);
-        if (newIndex === -1 && filteredPokemon.length > 0) newIndex = 0;
-        if (newIndex !== -1) {
-            this.highlightSelectedListItem(this.elements.pokemonList.children, newIndex);
-            this.updatePokemonPreview();
-        }
     }
 
     createPokemonListItem(pokemon) {
@@ -259,14 +263,7 @@ class Pokedex {
     }
 
     highlightSelectedListItem(listItems, newIndex) {
-        const currentActive = document.querySelector('#pokemonList li.active');
-        if (currentActive) currentActive.classList.remove('active');
-        const newSelectedFilteredItem = listItems[newIndex];
-        if (!newSelectedFilteredItem) return;
-        const newSelectedOriginalId = parseInt(newSelectedFilteredItem.dataset.id) - 1;
-        this.state.selectedPokemonIndex = newSelectedOriginalId;
-        newSelectedFilteredItem.classList.add('active');
-        newSelectedFilteredItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        highlightSelectedListItemAndScroll(listItems, newIndex, this.state);
     }
 
     async updatePokemonPreview() {
@@ -276,14 +273,15 @@ class Pokedex {
             this.resetPokemonPreviewDisplay();
             return;
         }
-        const currentPokemonData = await this.getOrFetchPokemonData(pokemon.name, pokemon.url);
+        const currentPokemonData = await getOrFetchPokemonData(pokemon.name, pokemon.url, this.state.detailedPokemonData);
         if (!currentPokemonData) {
             this.resetPokemonPreviewDisplay();
             return;
         }
-        this.updatePokemonImage(currentPokemonData);
-        this.updateDisplayBackground(currentPokemonData);
-        this.resetDetailAndExtraFields();
+        updatePokemonImage(this.elements, currentPokemonData);
+        updateBackgroundColor(this.elements.pokemonDisplayArea, this.getPrimaryTypeName(currentPokemonData));
+        resetDetailFields(this.elements);
+        resetExtraDetailFields(this.elements);
         this.stopPokemonCry();
         this.elements.extraDetailsBtn.disabled = true;
     }
@@ -294,47 +292,8 @@ class Pokedex {
     }
 
     resetDetailAndExtraFields() {
-        this.resetDetailFields();
-        this.resetExtraDetailFields();
-    }
-
-    async getOrFetchPokemonData(name, url) {
-        if (this.state.detailedPokemonData[name]) return this.state.detailedPokemonData[name];
-        try {
-            const data = await this.fetchData(url);
-            this.state.detailedPokemonData[name] = data;
-            return data;
-        } catch (error) {
-            console.error(`Fehler beim Cachen/Abrufen von ${name}:`, error);
-            return null;
-        }
-    }
-
-    updatePokemonImage(pokemonData) {
-        const imageUrl = pokemonData.sprites.other?.['official-artwork']?.front_default || pokemonData.sprites.front_default;
-        this.elements.pokemonImage.src = imageUrl || '';
-        this.elements.pokemonImage.alt = imageUrl ? capitalizeFirstLetter(pokemonData.name) : 'Kein Bild verfügbar';
-    }
-
-    updateDisplayBackground(pokemonData) {
-        const primaryType = this.getPrimaryTypeName(pokemonData);
-        this.updateBackgroundColor(this.elements.pokemonDisplayArea, primaryType);
-    }
-
-    resetDetailFields() {
-        this.elements.pokemonName.textContent = '';
-        this.elements.pokemonId.textContent = '';
-        this.elements.pokemonTypes.innerHTML = '';
-        this.elements.pokemonDescription.textContent = 'Wähle ein Pokémon für Details...';
-        this.elements.pokemonStats.innerHTML = '';
-    }
-
-    resetExtraDetailFields() {
-        this.elements.extraDetailsName.textContent = '';
-        this.elements.pokemonHabitat.innerHTML = '';
-        this.elements.pokemonHeightWeight.innerHTML = '';
-        this.elements.pokemonMoves.innerHTML = '';
-        this.elements.pokemonEvolution.innerHTML = '';
+        resetDetailFields(this.elements);
+        resetExtraDetailFields(this.elements);
     }
 
     async showPokemonDetail() {
@@ -343,30 +302,20 @@ class Pokedex {
         if (!pokemonId) return this.handleDetailError('Kein Pokémon ausgewählt.');
 
         const [pokemonData, speciesData] = await Promise.all([
-            this.loadPokemonDataForDetail(pokemonId),
-            this.loadSpeciesDataForDetail(pokemonId)
+            loadPokemonDataForDetail(pokemonId, this.state.detailedPokemonData, this.state.allPokemon, this.state.selectedPokemonIndex),
+            loadSpeciesDataForDetail(pokemonId, this.state.speciesDataCache)
         ]);
         if (!pokemonData || !speciesData) return this.handleDetailError('Daten nicht geladen.');
-        this.updateDetailView(pokemonData, speciesData);
+        updateDetailView(this.elements, pokemonData, speciesData, this.getPrimaryTypeName.bind(this), this.playPokemonCry.bind(this));
     }
 
+    // prepareDetailView nutzt jetzt die ausgelagerten show/hide-Funktionen
     prepareDetailView() {
-        this.hideListAndSearch();
-        this.hideExtraDetailAndShowDetail();
+        hideListAndSearch(this.elements);
+        hideExtraDetailAndShowDetail(this.elements);
         this.state.detailViewActive = true;
         this.state.extraDetailViewActive = false;
         this.elements.extraDetailsBtn.disabled = false;
-    }
-
-    hideListAndSearch() {
-        this.elements.pokedexListArea.classList.add('hidden');
-        this.elements.pokemonSearch.classList.add('hidden');
-        this.elements.pokemonSearch.parentNode.classList.add('hidden');
-    }
-
-    hideExtraDetailAndShowDetail() {
-        this.elements.pokedexExtraDetailsView.classList.add('hidden');
-        this.elements.pokedexDetailView.classList.remove('hidden');
     }
 
     handleDetailError(message) {
@@ -392,13 +341,13 @@ class Pokedex {
 
     async loadAndDisplayExtraDetails(pokemonId) {
         const [pokemonData, speciesData] = await Promise.all([
-            this.loadPokemonDataForDetail(pokemonId),
-            this.loadSpeciesDataForDetail(pokemonId)
+            loadPokemonDataForDetail(pokemonId, this.state.detailedPokemonData, this.state.allPokemon, this.state.selectedPokemonIndex),
+            loadSpeciesDataForDetail(pokemonId, this.state.speciesDataCache)
         ]);
         if (!pokemonData || !speciesData) return;
 
-        const evolutionChainData = await this.loadEvolutionChainData(speciesData?.evolution_chain.url);
-        this.updateExtraDetailView(pokemonData, speciesData, evolutionChainData);
+        const evolutionChainData = await loadEvolutionChainData(speciesData?.evolution_chain.url, this.state.evolutionChainCache);
+        updateExtraDetailView(this.elements, pokemonData, speciesData, evolutionChainData, this.getPrimaryTypeName.bind(this));
     }
 
     getSelectedPokemonId() {
@@ -406,140 +355,8 @@ class Pokedex {
         return pokemon ? pokemon.url.split('/').slice(-2, -1)[0] : null;
     }
 
-    async loadPokemonDataForDetail(pokemonId) {
-        const pokemonName = this.state.allPokemon[this.state.selectedPokemonIndex]?.name;
-        if (pokemonName && this.state.detailedPokemonData[pokemonName]) {
-            return this.state.detailedPokemonData[pokemonName];
-        }
-        return await this.fetchAndCacheData(pokemonId, 'pokemon', 'detailedPokemonData');
-    }
-
-    async loadSpeciesDataForDetail(pokemonId) {
-        return await this.fetchAndCacheData(pokemonId, 'pokemon-species', 'speciesDataCache');
-    }
-
-    async loadEvolutionChainData(evolutionChainUrl) {
-        if (!evolutionChainUrl) return null;
-        if (this.state.evolutionChainCache[evolutionChainUrl]) return this.state.evolutionChainCache[evolutionChainUrl];
-        try {
-            const data = await this.fetchData(evolutionChainUrl);
-            this.state.evolutionChainCache[evolutionChainUrl] = data;
-            return data;
-        } catch (error) {
-            this.handleFetchError('Fehler beim Laden der Evolutionskette.', error, true);
-            return null;
-        }
-    }
-
-    async fetchAndCacheData(id, endpoint, cacheName) {
-        try {
-            const url = `${POKEAPI_BASE_URL}${endpoint}/${id}/`;
-            const data = await this.fetchData(url);
-            if (this.state[cacheName]) {
-                this.state[cacheName][id] = data;
-            } else if (endpoint === 'pokemon') {
-                const pokemonName = this.state.allPokemon[this.state.selectedPokemonIndex]?.name;
-                if (pokemonName) this.state.detailedPokemonData[pokemonName] = data;
-            }
-            return data;
-        } catch (error) {
-            this.handleFetchError(`Fehler beim Laden von ${endpoint} (ID: ${id}).`, error, true);
-            return null;
-        }
-    }
-
-    updateDetailView(pokemonData, speciesData) {
-        this.updateBasicPokemonInfo(pokemonData);
-        this.updatePokemonTypeAndBackgrounds(pokemonData);
-        this.updatePokemonDescription(speciesData);
-        this.updatePokemonStats(pokemonData);
-        this.playPokemonCry(pokemonData.name);
-    }
-
-    async updateExtraDetailView(pokemonData, speciesData, evolutionChainData) {
-        this.resetExtraDetailFields();
-        this.elements.extraDetailsName.textContent = capitalizeFirstLetter(pokemonData.name);
-        this.updateBackgroundColor(this.elements.extraDetailsScreen, this.getPrimaryTypeName(pokemonData));
-        this.addHabitatInfo(speciesData);
-        this.addHeightWeightInfo(pokemonData);
-        this.addMovesInfo(pokemonData);
-        await this.addEvolutionInfo(evolutionChainData);
-    }
-
-    addHabitatInfo(speciesData) {
-        const habitat = speciesData.habitat?.name ? capitalizeFirstLetter(speciesData.habitat.name) : 'Unbekannt';
-        this.elements.pokemonHabitat.appendChild(createDetailSection('Habitat:', habitat));
-    }
-
-    addHeightWeightInfo(pokemonData) {
-        const height = `${(pokemonData.height / 10).toFixed(1)} m`;
-        const weight = `${(pokemonData.weight / 10).toFixed(1)} kg`;
-        this.elements.pokemonHeightWeight.appendChild(createDetailSection('Größe:', height));
-        this.elements.pokemonHeightWeight.appendChild(createDetailSection('Gewicht:', weight));
-    }
-
-    addMovesInfo(pokemonData) {
-        this.elements.pokemonMoves.appendChild(createDetailSection('Attacken:', createMovesList(pokemonData.moves)));
-    }
-
-    async addEvolutionInfo(evolutionChainData) {
-        const evolutionSection = createDetailSection('Entwicklung:', '');
-        this.elements.pokemonEvolution.appendChild(evolutionSection);
-        if (evolutionChainData) {
-            const evolutionLineHtml = await createEvolutionLine(evolutionChainData);
-            evolutionSection.appendChild(evolutionLineHtml);
-        } else {
-            evolutionSection.appendChild(document.createTextNode('Keine Evolutionsdaten verfügbar.'));
-        }
-    }
-
-    updateBasicPokemonInfo(pokemonData) {
-        this.elements.pokemonName.textContent = capitalizeFirstLetter(pokemonData.name);
-        this.elements.pokemonId.textContent = `#${String(pokemonData.id).padStart(3, '0')}`;
-        this.animatePokemonImage();
-    }
-
-    animatePokemonImage() {
-        this.elements.pokemonImage.classList.add('flash');
-        setTimeout(() => this.elements.pokemonImage.classList.remove('flash'), 400);
-    }
-
-    updatePokemonTypeAndBackgrounds(pokemonData) {
-        this.elements.pokemonTypes.innerHTML = '';
-        const primaryType = this.getPrimaryTypeName(pokemonData);
-        this.applyBackgroundColors(primaryType);
-        pokemonData.types.map(t => t.type.name).forEach(type =>
-            this.elements.pokemonTypes.appendChild(createTypeBadge(type))
-        );
-    }
-
     getPrimaryTypeName(pokemonData) {
         return pokemonData.types[0].type.name.toLowerCase();
-    }
-
-    applyBackgroundColors(primaryType) {
-        this.updateBackgroundColor(this.elements.pokedexScreen, primaryType);
-        this.updateBackgroundColor(this.elements.pokemonDisplayArea, primaryType);
-        this.updateBackgroundColor(this.elements.pokemonStats, primaryType);
-        this.updateBackgroundColor(this.elements.extraDetailsScreen, primaryType);
-    }
-
-    updateBackgroundColor(element, type) {
-        Object.keys(detailBgColors).forEach(t => element.classList.remove(`bg-${t}`));
-        if (detailBgColors[type]) element.classList.add(`bg-${type}`);
-    }
-
-    updatePokemonDescription(speciesData) {
-        const descriptionEntry = findDescription(speciesData.flavor_text_entries);
-        const description = descriptionEntry ? descriptionEntry.flavor_text.replace(/[\n\f]/g, ' ') : 'Keine Beschreibung verfügbar.';
-        this.elements.pokemonDescription.textContent = description;
-    }
-
-    updatePokemonStats(pokemonData) {
-        this.elements.pokemonStats.innerHTML = '';
-        pokemonData.stats.forEach(stat =>
-            this.elements.pokemonStats.appendChild(createStatItem(stat.stat.name, stat.base_stat))
-        );
     }
 
     playPokemonCry(pokemonName) {
@@ -553,22 +370,16 @@ class Pokedex {
         this.state.extraDetailViewActive = false;
         this.elements.pokedexDetailView.classList.add('hidden');
         this.elements.pokedexExtraDetailsView.classList.add('hidden');
-        this.showListAndSearch();
+        showListAndSearch(this.elements);
         this.resetAllDetailStates();
         this.displayPokemonList();
         this.elements.extraDetailsBtn.disabled = true;
     }
 
-    showListAndSearch() {
-        this.elements.pokedexListArea.classList.remove('hidden');
-        this.elements.pokemonSearch.classList.remove('hidden');
-        this.elements.pokemonSearch.parentNode.classList.remove('hidden');
-    }
-
     resetAllDetailStates() {
-        this.resetDetailFields();
-        this.resetExtraDetailFields();
-        this.resetBackgrounds();
+        resetDetailFields(this.elements);
+        resetExtraDetailFields(this.elements);
+        resetBackgrounds(this.elements);
         this.stopPokemonCry();
     }
 
@@ -576,7 +387,7 @@ class Pokedex {
         this.state.extraDetailViewActive = false;
         this.elements.pokedexExtraDetailsView.classList.add('hidden');
         this.elements.pokedexDetailView.classList.remove('hidden');
-        this.resetExtraDetailFields();
+        resetExtraDetailFields(this.elements);
         this.restoreDetailViewBackground();
     }
 
@@ -584,37 +395,17 @@ class Pokedex {
         const currentPokemonData = this.state.detailedPokemonData[this.state.allPokemon[this.state.selectedPokemonIndex]?.name];
         if (currentPokemonData) {
             const primaryType = this.getPrimaryTypeName(currentPokemonData);
-            this.updateBackgroundColor(this.elements.pokemonDisplayArea, primaryType);
-            this.updateBackgroundColor(this.elements.pokedexScreen, primaryType);
-            this.updateBackgroundColor(this.elements.pokemonStats, primaryType);
+            updateBackgroundColor(this.elements.pokemonDisplayArea, primaryType);
+            updateBackgroundColor(this.elements.pokedexScreen, primaryType);
+            updateBackgroundColor(this.elements.pokemonStats, primaryType);
         } else {
-            this.resetBackgrounds();
+            resetBackgrounds(this.elements);
         }
     }
 
     stopPokemonCry() {
         this.elements.pokemonCry.pause();
         this.elements.pokemonCry.currentTime = 0;
-    }
-
-    resetBackgrounds() {
-        const elementsToReset = [
-            this.elements.pokemonDisplayArea,
-            this.elements.pokedexScreen,
-            this.elements.pokemonStats,
-            this.elements.extraDetailsScreen
-        ];
-        elementsToReset.forEach(element => {
-            if (element) {
-                Object.keys(detailBgColors).forEach(t => element.classList.remove(`bg-${t}`));
-            }
-        });
-    }
-
-    resetPokemonDisplayBackground() {
-        Object.keys(detailBgColors).forEach(t =>
-            this.elements.pokemonDisplayArea.classList.remove(`bg-${t}`)
-        );
     }
 
     handlePokemonListClick(event) {
@@ -647,18 +438,11 @@ class Pokedex {
         this.elements.volumePercentage.textContent = `${Math.round(newVolume * 100)}%`;
     }
 
-    setupDpadListeners() {
-        this.elements.dpadUp.addEventListener('click', () => this.handleDpadMovement(-1));
-        this.elements.dpadDown.addEventListener('click', () => this.handleDpadMovement(1));
-        this.elements.dpadLeft.addEventListener('click', () => this.handleDpadMovement(-10));
-        this.elements.dpadRight.addEventListener('click', () => this.handleDpadMovement(10));
-    }
-
     handleDpadMovement(offset) {
         if (!this.state.pokedexIsOpen || this.state.detailViewActive || this.state.extraDetailViewActive) return;
         const filteredPokemon = this.getFilteredPokemon();
         if (filteredPokemon.length === 0) return;
-        
+
         let currentFilteredIndex = this.getCurrentFilteredIndex(filteredPokemon);
         const newFilteredIndex = this.calculateNewFilteredIndex(currentFilteredIndex, offset, filteredPokemon.length);
         this.updateSelectedPokemonAndDisplay(filteredPokemon[newFilteredIndex]);
@@ -685,11 +469,6 @@ class Pokedex {
         }
     }
 
-    setupButtonListeners() {
-        this.elements.buttonA.addEventListener('click', () => this.handleAButtonPress());
-        this.elements.buttonB.addEventListener('click', () => this.handleBButtonPress());
-    }
-
     handleAButtonPress() {
         if (!this.state.pokedexIsOpen) return;
         if (this.state.detailViewActive || this.state.extraDetailViewActive) {
@@ -709,10 +488,6 @@ class Pokedex {
         } else {
             this.closePokedex();
         }
-    }
-
-    setupKeyboardListeners() {
-        document.addEventListener('keydown', (event) => this.handleKeyboardInput(event));
     }
 
     handleKeyboardInput(event) {
@@ -762,9 +537,9 @@ class Pokedex {
         this.elements.pokemonList.innerHTML = `<li style="color: red;">Fehler: ${message} Bitte versuchen Sie es später erneut.</li>`;
         this.elements.pokemonImage.src = '';
         this.elements.pokemonImage.alt = 'Fehler beim Laden';
-        this.resetDetailFields();
-        this.resetExtraDetailFields();
-        this.resetBackgrounds();
+        resetDetailFields(this.elements);
+        resetExtraDetailFields(this.elements);
+        resetBackgrounds(this.elements);
         this.stopPokemonCry();
         if (shouldHideDetail) this.hidePokemonDetail();
         this.elements.extraDetailsBtn.disabled = true;

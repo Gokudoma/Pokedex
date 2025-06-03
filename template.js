@@ -1,6 +1,6 @@
 // Konstanten und Hilfsfunktionen
 export const POKEAPI_BASE_URL = 'https://pokeapi.co/api/v2/';
-export const MAX_POKEMON_ID = 151; // Bis Generation 1
+export const MAX_POKEMON_ID = 1025;
 
 // Typenfarben für Badges
 export const typeColors = {
