@@ -1,8 +1,6 @@
-// Konstanten und Hilfsfunktionen
 export const POKEAPI_BASE_URL = 'https://pokeapi.co/api/v2/';
 export const MAX_POKEMON_ID = 1025;
 
-// Typenfarben für Badges
 export const typeColors = {
     normal: '#C6C6A7', fire: '#F5AC78', water: '#9DB7F5', electric: '#FAE078',
     grass: '#A7DB8D', ice: '#BCE6E6', fighting: '#D67873', poison: '#C183C1',
@@ -11,7 +9,6 @@ export const typeColors = {
     fairy: '#F4BDC9', dark: '#A29288',
 };
 
-// Hintergrundfarben für die Anzeigebereiche
 export const detailBgColors = {
     normal: '#E0E0C6', fire: '#FADCB3', water: '#C6D6F5', electric: '#FFF3B3',
     grass: '#D0E6C6', ice: '#D6F2F2', fighting: '#E3C1BF', poison: '#D6BDD6',
@@ -20,7 +17,6 @@ export const detailBgColors = {
     fairy: '#FBE0E3', dark: '#D6D0CC',
 };
 
-// Hilfsfunktionen
 export const capitalizeFirstLetter = string =>
     string.charAt(0).toUpperCase() + string.slice(1);
 
@@ -51,7 +47,7 @@ export const createStatItem = (name, value) => {
 
 export const findDescription = (entries) => {
     return entries.find(entry => entry.language.name === 'en' &&
-                            ['red', 'blue', 'yellow'].includes(entry.version.name)) ||
+                                ['red', 'blue', 'yellow'].includes(entry.version.name)) ||
            entries.find(entry => entry.language.name === 'en');
 };
 
@@ -143,7 +139,7 @@ export const createEvolutionLine = async (evolutionChainData) => {
 
         if (current.evolves_to && current.evolves_to.length > 0) {
             const arrowIcon = document.createElement('i');
-            arrowIcon.classList.add('fas', 'fa-arrow-right'); // Font Awesome Icon
+            arrowIcon.classList.add('fas', 'fa-arrow-right');
             arrowIcon.style.margin = '0 10px';
             evolutionDiv.appendChild(arrowIcon);
             current = current.evolves_to[0];
